@@ -1,0 +1,87 @@
+id: analyze_input
+namespace: system.autopr
+description: "Analyzes the normalized GitHub or manual update and extracts audience, tone, topic, and generation hints."
+
+inputs:
+  - id: raw_update
+    type: STRING
+    required: true
+  - id: github_context_json
+    type: STRING
+    defaults: "{}"
+  - id: style_profile_json
+    type: STRING
+    defaults: "{}"
+
+outputs:
+  - id: analysis
+    type: JSON
+    value: "{{ outputs.analyze_task.vars.analysis }}"
+
+tasks:
+  - id: analyze_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+
+      def parse_json(value, fallback):
+          try:
+              parsed = json.loads(value)
+              if isinstance(parsed, str):
+                  try:
+                      return json.loads(parsed)
+                  except Exception:
+                      return parsed
+              return parsed
+          except Exception:
+              return fallback
+
+      input_text = r'''{{ inputs.raw_update }}'''.strip()
+      github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+      style_profile = parse_json(r'''{{ inputs.style_profile_json }}''', {})
+      text_lower = input_text.lower()
+
+      is_technical = any(word in text_lower for word in ["fix", "bug", "refactor", "code", "ui", "api", "workflow", "kestra", "github", "delivery"])
+      is_hiring = any(word in text_lower for word in ["hire", "intern", "job", "recruit", "team"])
+      is_milestone = any(word in text_lower for word in ["launch", "release", "version", "shipped", "ship", "landed"])
+
+      topics = []
+      if is_technical:
+          topics.append("technical")
+      if is_hiring:
+          topics.append("hiring")
+      if is_milestone:
+          topics.append("milestone")
+      if not topics:
+          topics.append("general_update")
+
+      keywords = [token.strip(".,:;!?()[]{}\"'").lower() for token in input_text.split() if len(token.strip(".,:;!?()[]{}\"'")) > 3][:8]
+      audience = style_profile.get("audience") or ("recruiters" if is_hiring else "builders")
+      tone = style_profile.get("tone") or ("technical" if is_technical else "professional")
+      hook_style = style_profile.get("hook_style") or ("announcement-led" if is_milestone else "insight-led")
+      technical_depth = "high" if is_technical or github_context.get("selected_commit") else "medium"
+      confidence = 0.8
+      if len(input_text) < 10:
+          confidence = 0.4
+
+      result = {
+          "topics": topics,
+          "keywords": keywords,
+          "is_technical": is_technical,
+          "is_hiring": is_hiring,
+          "is_milestone": is_milestone,
+          "confidence": confidence,
+          "tone": tone,
+          "audience": audience,
+          "hook_style": hook_style,
+          "technical_depth": technical_depth,
+          "summary": f"{tone} / {hook_style} / {technical_depth}",
+          "github_context_summary": github_context.get("summary"),
+          "cta_pattern": style_profile.get("cta_pattern") or ("question-led" if "?" in input_text else "soft-invite"),
+          "hashtag_seed": style_profile.get("hashtag_pattern", {}).get("examples", []),
+      }
+
+      print('::{"outputs": {"analysis": ' + json.dumps(json.dumps(result)) + '}}::')

@@ -1,0 +1,94 @@
+id: route_distribution
+namespace: system.autopr
+description: "Decides which platforms and recipients should receive the generated content."
+
+inputs:
+  - id: analysis_json
+    type: STRING
+    required: true
+  - id: style_profile_json
+    type: STRING
+    defaults: "{}"
+  - id: goal
+    type: STRING
+    required: true
+  - id: source
+    type: STRING
+    defaults: "manual"
+
+outputs:
+  - id: selected_platforms
+    type: JSON
+    value: "{{ outputs.route_task.vars.selected_platforms }}"
+  - id: recipients
+    type: JSON
+    value: "{{ outputs.route_task.vars.recipients }}"
+  - id: requires_review
+    type: STRING
+    value: "{{ outputs.route_task.vars.requires_review }}"
+  - id: routing_decision
+    type: JSON
+    value: "{{ outputs.route_task.vars.routing_decision }}"
+
+tasks:
+  - id: route_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+
+      def parse_json(value, fallback):
+          try:
+              return json.loads(value)
+          except Exception:
+              return fallback
+
+      analysis = parse_json('{{ inputs.analysis_json }}', {})
+      style_profile = parse_json('{{ inputs.style_profile_json }}', {})
+      goal = "{{ inputs.goal }}".strip() or "general_update"
+      source = "{{ inputs.source }}".strip() or "manual"
+
+      platforms = {"linkedin"}
+      recipients = {"community"}
+      reasons = []
+
+      if analysis.get("is_technical") or analysis.get("technical_depth") == "high":
+          platforms.update(["x", "linkedin"])
+          recipients.update(["builders", "mentors"])
+          reasons.append("technical build-in-public update")
+
+      if analysis.get("is_milestone") or goal == "milestone":
+          platforms.update(["linkedin", "x", "instagram"])
+          reasons.append("milestone content benefits from broader reach")
+
+      if analysis.get("is_hiring") or goal in ["hiring", "team_growth"] or analysis.get("audience") == "recruiters":
+          platforms.update(["linkedin", "whatsapp_dm"])
+          recipients.update(["recruiters", "team"])
+          reasons.append("audience includes recruiters or team leads")
+
+      if goal == "build_in_public":
+          platforms.update(["linkedin", "x"])
+          reasons.append("build-in-public content favors LinkedIn and X")
+
+      if style_profile.get("cta_pattern") == "question-led":
+          recipients.add("engaged_followers")
+          reasons.append("style uses question-led CTA")
+
+      if not reasons:
+          reasons.append("defaulting to LinkedIn for the primary announcement")
+
+      selected_platforms = [platform for platform in ["linkedin", "x", "instagram", "whatsapp_dm"] if platform in platforms]
+      recipients_list = sorted(recipients)
+      requires_review = analysis.get("confidence", 1.0) < 0.5 or analysis.get("technical_depth") == "low" and goal == "general_update"
+
+      routing_decision = {
+          "platforms": selected_platforms,
+          "recipients": recipients_list,
+          "reason": "; ".join(reasons),
+          "source": source,
+          "requires_review": requires_review,
+      }
+
+      print('::{"outputs": {"selected_platforms": ' + json.dumps(json.dumps(selected_platforms)) + ', "recipients": ' + json.dumps(json.dumps(recipients_list)) + ', "requires_review": ' + json.dumps("true" if requires_review else "false") + ', "routing_decision": ' + json.dumps(json.dumps(routing_decision)) + '}}::')

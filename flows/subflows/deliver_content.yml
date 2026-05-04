@@ -1,0 +1,136 @@
+id: deliver_content
+namespace: system.autopr
+description: "Persists generated content locally and, in live mode, optionally dispatches it to a webhook adapter."
+
+inputs:
+  - id: run_id
+    type: STRING
+    required: true
+  - id: platform
+    type: STRING
+    required: true
+  - id: content
+    type: STRING
+    required: true
+  - id: dry_run
+    type: STRING
+    defaults: "true"
+  - id: delivery_webhook_url
+    type: STRING
+    defaults: ""
+  - id: routing_decision_json
+    type: STRING
+    defaults: "{}"
+  - id: github_context_json
+    type: STRING
+    defaults: "{}"
+  - id: analysis_json
+    type: STRING
+    defaults: "{}"
+  - id: style_profile_json
+    type: STRING
+    defaults: "{}"
+
+outputs:
+  - id: delivery_record
+    type: JSON
+    value: "{{ outputs.deliver_task.vars.delivery_record }}"
+  - id: delivery_summary
+    type: JSON
+    value: "{{ outputs.deliver_task.vars.delivery_summary }}"
+  - id: delivery_logs
+    type: JSON
+    value: "{{ outputs.deliver_task.vars.delivery_logs }}"
+
+tasks:
+  - id: deliver_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+      import os
+      from datetime import datetime
+
+      def parse_json(value, fallback):
+          try:
+              parsed = json.loads(value)
+              if isinstance(parsed, str):
+                  try:
+                      return json.loads(parsed)
+                  except Exception:
+                      return parsed
+              return parsed
+          except Exception:
+              return fallback
+
+      run_id = r'''{{ inputs.run_id }}'''
+      platform = r'''{{ inputs.platform }}'''
+      content = r'''{{ inputs.content }}'''
+      dry_run = r'''{{ inputs.dry_run }}'''.lower() == "true"
+      delivery_webhook_url = r'''{{ inputs.delivery_webhook_url }}'''.strip()
+      routing_decision = parse_json(r'''{{ inputs.routing_decision_json }}''', {})
+      github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+      analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
+      style_profile = parse_json(r'''{{ inputs.style_profile_json }}''', {})
+
+      posts_dir = "/data/posts"
+      os.makedirs(posts_dir, exist_ok=True)
+      file_path = os.path.join(posts_dir, f"{run_id}_{platform}.json")
+
+      status = "dry_run_saved" if dry_run else "missing_adapter_credentials"
+      adapter_response = None
+
+      if not dry_run and delivery_webhook_url:
+          try:
+              import httpx
+
+              payload = {
+                  "run_id": run_id,
+                  "platform": platform,
+                  "content": content,
+                  "dry_run": dry_run,
+                  "routing_decision": routing_decision,
+                  "github_context": github_context,
+                  "analysis": analysis,
+                  "style_profile": style_profile,
+              }
+              response = httpx.post(delivery_webhook_url, json=payload, timeout=20.0)
+              response.raise_for_status()
+              status = "live_adapter_sent"
+              adapter_response = {"status_code": response.status_code}
+          except Exception as exc:
+              status = "delivery_failed"
+              adapter_response = {"error": str(exc)}
+              raise
+
+      payload = {
+          "run_id": run_id,
+          "platform": platform,
+          "content": content,
+          "timestamp": datetime.utcnow().isoformat(),
+          "status": status,
+          "dry_run": dry_run,
+          "delivery_webhook_url": delivery_webhook_url,
+          "routing_decision": routing_decision,
+          "github_context": github_context,
+          "analysis": analysis,
+          "style_profile": style_profile,
+          "adapter_response": adapter_response,
+      }
+
+      with open(file_path, "w") as handle:
+          json.dump(payload, handle, indent=2)
+
+      delivery_record = {
+          "platform": platform,
+          "status": status,
+          "saved_path": file_path,
+          "dry_run": dry_run,
+          "adapter_response": adapter_response,
+      }
+      delivery_summary = {platform: status}
+      delivery_logs = [f"{platform}:{status}", f"saved:{file_path}"]
+
+      print('::{"outputs": {"delivery_record": ' + json.dumps(json.dumps(delivery_record)) + ', "delivery_summary": ' + json.dumps(json.dumps(delivery_summary)) + ', "delivery_logs": ' + json.dumps(json.dumps(delivery_logs)) + '}}::')

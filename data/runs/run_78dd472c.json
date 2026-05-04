@@ -1,0 +1,14 @@
+{
+  "id": "run_78dd472c",
+  "timestamp": "2026-05-04T19:52:53.112075",
+  "source": "api",
+  "payload": {
+    "source": "github_commit",
+    "project": "Algsoch",
+    "raw_update": "Added offline AI response streaming, fixed auto-scroll, improved traceability UI, and added mode metadata for debugging.",
+    "author": "Vicky Kumar",
+    "goal": "build_in_public"
+  },
+  "status": "failed",
+  "error": "Client error '415 Unsupported Media Type' for url 'http://kestra:8080/api/v1/executions/system.autopr/autopr_main_flow'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/415"
+}

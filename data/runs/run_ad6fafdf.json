@@ -1,0 +1,236 @@
+{
+  "run_id": "run_ad6fafdf",
+  "kestra_execution_id": "54l4uvbDrB3mJKyfPm50hV",
+  "dry_run": true,
+  "input_source": "github_commit",
+  "selected_repo": {
+    "owner": "octocat",
+    "name": "Spoon-Knife",
+    "full_name": "octocat/Spoon-Knife",
+    "html_url": "https://github.com/octocat/Spoon-Knife",
+    "description": "This repo is for demonstration purposes only.",
+    "default_branch": "main"
+  },
+  "selected_commit": {
+    "sha": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+    "message": "Pointing to the guide for forking",
+    "author_name": "The Octocat",
+    "author_date": "2014-02-12T23:20:44Z",
+    "html_url": "https://github.com/octocat/Spoon-Knife/commit/d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9"
+  },
+  "selected_pr": {
+    "number": 39910,
+    "title": "First work",
+    "state": "open",
+    "html_url": "https://github.com/octocat/Spoon-Knife/pull/39910",
+    "merged_at": null,
+    "author_login": null
+  },
+  "generated_posts": {
+    "linkedin": "Shipping a meaningful update: Pointing to the guide for forking\n\nThis release tightens the orchestration loop across GitHub context, Kestra execution visibility, and content delivery.\n\nWhy it matters: the system now turns commits and PRs into structured distribution plans with explicit dry-run vs live delivery state.\n\n#Pointing #Guide #Forking",
+    "x": "Pointing to the guide for forking \u2014 now wired into an orchestrated delivery pipeline.\nGitHub signal in, Kestra topology out, delivery status visible. #BuildInPublic #Automation",
+    "instagram": "Behind the scenes update: Pointing to the guide for forking.\n\nWe\u2019re turning repo activity into a full content workflow with analysis, routing, and delivery tracking.\n\n#Pointing #Guide #Forking",
+    "whatsapp_dm": "Quick update for builders: Pointing to the guide for forking.\nThe system now traces the full path from GitHub input to content generation and delivery status."
+  },
+  "routing_decision": {
+    "platforms": [
+      "linkedin",
+      "x"
+    ],
+    "recipients": [
+      "builders",
+      "community",
+      "engaged_followers",
+      "mentors"
+    ],
+    "reason": "technical build-in-public update; style uses question-led CTA",
+    "requires_review": false
+  },
+  "delivery_status": {
+    "linkedin": "dry_run_saved",
+    "x": "dry_run_saved",
+    "instagram": "dry_run_saved",
+    "whatsapp_dm": "dry_run_saved"
+  },
+  "analysis": {
+    "keywords": [
+      "pointing",
+      "guide",
+      "forking"
+    ],
+    "tone": "professional",
+    "hook_style": "insight-led",
+    "technical_depth": "high",
+    "audience": "builders",
+    "signals": [
+      "ui"
+    ]
+  },
+  "style_profile": {
+    "tone": "professional",
+    "structure": "compact",
+    "hook_style": "insight-led",
+    "technical_depth": "high",
+    "audience": "builders",
+    "cta_pattern": "question-led",
+    "hashtag_pattern": {
+      "count": 2,
+      "examples": [
+        "#buildinpublic",
+        "#kestra"
+      ],
+      "style": "light"
+    },
+    "sample_count": 2,
+    "summary": "professional / insight-led / high",
+    "use_for_generation": true
+  },
+  "execution_timeline": [
+    {
+      "step": "validate_input",
+      "status": "complete"
+    },
+    {
+      "step": "extract_github_context",
+      "status": "complete"
+    },
+    {
+      "step": "linkedin_style_analysis",
+      "status": "complete"
+    },
+    {
+      "step": "parallel_generation",
+      "status": "complete"
+    },
+    {
+      "step": "routing",
+      "status": "complete"
+    },
+    {
+      "step": "delivery",
+      "status": "saved"
+    },
+    {
+      "step": "finalize",
+      "status": "pending"
+    }
+  ],
+  "logs": [
+    "2026-05-04T21:36:22.141479+00:00 [info] Accepted github_commit input for octocat/Spoon-Knife",
+    "2026-05-04T21:36:22.141543+00:00 [info] Generated posts for linkedin, x, instagram, whatsapp_dm",
+    "2026-05-04T21:36:22.141571+00:00 [info] Routing decision targets linkedin, x",
+    "2026-05-04T21:36:22.141577+00:00 [info] Dry run enabled; delivery will be saved locally."
+  ],
+  "errors": [],
+  "status": "running",
+  "payload": {
+    "source": "github_commit",
+    "project": "octocat/Spoon-Knife",
+    "raw_update": "Pointing to the guide for forking",
+    "author": "The Octocat",
+    "goal": "build_in_public",
+    "dry_run": true,
+    "run_id": null,
+    "selected_repo": {
+      "owner": "octocat",
+      "name": "Spoon-Knife",
+      "full_name": "octocat/Spoon-Knife",
+      "html_url": "https://github.com/octocat/Spoon-Knife",
+      "description": "This repo is for demonstration purposes only.",
+      "default_branch": "main"
+    },
+    "selected_commit": {
+      "sha": "d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9",
+      "message": "Pointing to the guide for forking",
+      "author_name": "The Octocat",
+      "author_date": "2014-02-12T23:20:44Z",
+      "html_url": "https://github.com/octocat/Spoon-Knife/commit/d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9"
+    },
+    "selected_pr": {
+      "number": 39910,
+      "title": "First work",
+      "state": "open",
+      "html_url": "https://github.com/octocat/Spoon-Knife/pull/39910",
+      "merged_at": null,
+      "author_login": null
+    },
+    "github_username": "octocat",
+    "github_token": null,
+    "github_context": null,
+    "style_analysis": {
+      "tone": "professional",
+      "structure": "compact",
+      "hook_style": "insight-led",
+      "technical_depth": "high",
+      "audience": "builders",
+      "cta_pattern": "question-led",
+      "hashtag_pattern": {
+        "count": 2,
+        "examples": [
+          "#buildinpublic",
+          "#kestra"
+        ],
+        "style": "light"
+      },
+      "sample_count": 2,
+      "summary": "professional / insight-led / high",
+      "use_for_generation": true
+    },
+    "use_style_profile": true,
+    "delivery_webhook_url": null,
+    "input_source": "github_commit"
+  },
+  "created_at": "2026-05-04T21:36:22.141685+00:00",
+  "updated_at": "2026-05-04T21:36:22.211317+00:00",
+  "id": "run_ad6fafdf",
+  "triggered_at": "2026-05-04T21:36:22.211300+00:00",
+  "kestra_response": {
+    "id": "54l4uvbDrB3mJKyfPm50hV",
+    "namespace": "system.autopr",
+    "flowId": "autopr_main_flow",
+    "flowRevision": 4,
+    "inputs": {
+      "author": "The Octocat",
+      "delivery_webhook_url": "None",
+      "dry_run": "true",
+      "github_context_json": "{}",
+      "github_token": "None",
+      "github_username": "octocat",
+      "goal": "build_in_public",
+      "input_source": "github_commit",
+      "project": "octocat/Spoon-Knife",
+      "raw_update": "Pointing to the guide for forking",
+      "run_id": "run_ad6fafdf",
+      "selected_commit_json": "{\"sha\": \"d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9\", \"message\": \"Pointing to the guide for forking\", \"author_name\": \"The Octocat\", \"author_date\": \"2014-02-12T23:20:44Z\", \"html_url\": \"https://github.com/octocat/Spoon-Knife/commit/d0dd1f61b33d64e29d8bc1372a94ef6a2fee76a9\"}",
+      "selected_pr_json": "{\"number\": 39910, \"title\": \"First work\", \"state\": \"open\", \"html_url\": \"https://github.com/octocat/Spoon-Knife/pull/39910\", \"merged_at\": null, \"author_login\": null}",
+      "selected_repo_json": "{\"owner\": \"octocat\", \"name\": \"Spoon-Knife\", \"full_name\": \"octocat/Spoon-Knife\", \"html_url\": \"https://github.com/octocat/Spoon-Knife\", \"description\": \"This repo is for demonstration purposes only.\", \"default_branch\": \"main\"}",
+      "source": "github_commit",
+      "style_analysis_json": "{\"tone\": \"professional\", \"structure\": \"compact\", \"hook_style\": \"insight-led\", \"technical_depth\": \"high\", \"audience\": \"builders\", \"cta_pattern\": \"question-led\", \"hashtag_pattern\": {\"count\": 2, \"examples\": [\"#buildinpublic\", \"#kestra\"], \"style\": \"light\"}, \"sample_count\": 2, \"summary\": \"professional / insight-led / high\", \"use_for_generation\": true}",
+      "use_style_profile": "true"
+    },
+    "labels": [
+      {
+        "key": "system.correlationId",
+        "value": "54l4uvbDrB3mJKyfPm50hV"
+      }
+    ],
+    "state": {
+      "current": "CREATED",
+      "histories": [
+        {
+          "state": "CREATED",
+          "date": "2026-05-04T21:36:22.187502591Z"
+        }
+      ],
+      "duration": "PT0.010688333S",
+      "startDate": "2026-05-04T21:36:22.187502591Z"
+    },
+    "originalId": "54l4uvbDrB3mJKyfPm50hV",
+    "deleted": false,
+    "metadata": {
+      "attemptNumber": 1,
+      "originalCreatedDate": "2026-05-04T21:36:22.187504133Z"
+    },
+    "url": "http://localhost:8080//ui/executions/system.autopr/autopr_main_flow/54l4uvbDrB3mJKyfPm50hV"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "run_84af4ebd",
+  "timestamp": "2026-05-04T20:37:24.385734",
+  "source": "api",
+  "payload": {
+    "source": "manual",
+    "project": "AutoPR Engine",
+    "raw_update": "added companion mode",
+    "author": "Admin",
+    "goal": "build_in_public"
+  },
+  "status": "running",
+  "kestra_execution_id": "681u8xmuKp9X4tO8PGBY9L"
+}

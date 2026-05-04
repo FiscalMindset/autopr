@@ -1,0 +1,79 @@
+id: analyze_linkedin_style
+namespace: system.autopr
+description: "Converts LinkedIn-style samples into a reusable content profile."
+
+inputs:
+  - id: style_samples_json
+    type: STRING
+    required: true
+
+outputs:
+  - id: style_profile
+    type: JSON
+    value: "{{ outputs.style_task.vars.style_profile }}"
+
+tasks:
+  - id: style_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+
+      raw_value = r'''{{ inputs.style_samples_json }}'''
+      try:
+          parsed = json.loads(raw_value)
+          if isinstance(parsed, str):
+              try:
+                  parsed = json.loads(parsed)
+              except Exception:
+                  pass
+      except Exception:
+          parsed = raw_value
+
+      if isinstance(parsed, dict) and parsed:
+          style_profile = {
+              "tone": parsed.get("tone", "professional"),
+              "structure": parsed.get("structure", "multi-paragraph"),
+              "hook_style": parsed.get("hook_style", "insight-led"),
+              "technical_depth": parsed.get("technical_depth", "medium"),
+              "audience": parsed.get("audience", "builders"),
+              "cta_pattern": parsed.get("cta_pattern", "soft-invite"),
+              "hashtag_pattern": parsed.get("hashtag_pattern", {"count": 0, "examples": [], "style": "light"}),
+              "sample_count": parsed.get("sample_count", 1),
+              "summary": parsed.get("summary", "LinkedIn style profile received from the backend analyzer."),
+              "use_for_generation": True,
+          }
+      else:
+          if isinstance(parsed, list):
+              samples = [str(item).strip() for item in parsed if str(item).strip()]
+          else:
+              samples = [part.strip() for part in str(parsed).split("\n\n") if part.strip()]
+
+          joined = "\n".join(samples)
+          lower = joined.lower()
+          tone = "professional"
+          if any(marker in lower for marker in ["excited", "thrilled", "love", "awesome"]):
+              tone = "energetic"
+          elif any(marker in lower for marker in ["lessons", "learned", "analysis", "deep dive"]):
+              tone = "reflective"
+
+          style_profile = {
+              "tone": tone,
+              "structure": "multi-paragraph" if joined.count("\n") >= 2 else "compact",
+              "hook_style": "story-led" if "behind the scenes" in lower else "insight-led",
+              "technical_depth": "high" if any(marker in lower for marker in ["api", "workflow", "kestra", "pipeline", "docker"]) else "medium",
+              "audience": "builders",
+              "cta_pattern": "question-led" if "?" in joined else "soft-invite",
+              "hashtag_pattern": {
+                  "count": len([token for token in joined.split() if token.startswith("#")]),
+                  "examples": [token for token in joined.split() if token.startswith("#")][:5],
+                  "style": "dense" if len([token for token in joined.split() if token.startswith("#")]) >= 5 else "light",
+              },
+              "sample_count": len(samples),
+              "summary": f"{tone} style profile generated from {len(samples)} sample posts.",
+              "use_for_generation": True,
+          }
+
+      print('::{"outputs": {"style_profile": ' + json.dumps(json.dumps(style_profile)) + '}}::')

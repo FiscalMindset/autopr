@@ -1,0 +1,14 @@
+{
+  "id": "run_d6fd118a",
+  "timestamp": "2026-05-04T20:41:28.804207",
+  "source": "api",
+  "payload": {
+    "source": "manual",
+    "project": "AutoPR Engine",
+    "raw_update": "looking for python",
+    "author": "Admin",
+    "goal": "hiring"
+  },
+  "status": "running",
+  "kestra_execution_id": "6Np9hfiOdNTzpnM6zUmcTo"
+}

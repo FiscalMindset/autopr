@@ -1,0 +1,198 @@
+id: autopr_main_flow
+namespace: system.autopr
+description: "Main orchestration flow for AutoPR Engine"
+
+inputs:
+  - id: run_id
+    type: STRING
+  - id: source
+    type: STRING
+  - id: project
+    type: STRING
+  - id: raw_update
+    type: STRING
+  - id: author
+    type: STRING
+  - id: goal
+    type: STRING
+    defaults: "general_update"
+  - id: dry_run
+    type: STRING
+    defaults: "true"
+  - id: github_username
+    type: STRING
+    defaults: ""
+  - id: github_token
+    type: STRING
+    defaults: ""
+  - id: selected_repo_json
+    type: STRING
+    defaults: "{}"
+  - id: selected_commit_json
+    type: STRING
+    defaults: "{}"
+  - id: selected_pr_json
+    type: STRING
+    defaults: "{}"
+  - id: github_context_json
+    type: STRING
+    defaults: "{}"
+  - id: style_analysis_json
+    type: STRING
+    defaults: "{}"
+  - id: use_style_profile
+    type: STRING
+    defaults: "false"
+  - id: delivery_webhook_url
+    type: STRING
+    defaults: ""
+  - id: input_source
+    type: STRING
+    defaults: "github_commit"
+
+tasks:
+  - id: validate_input
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: validate_input
+    inputs:
+      run_id: "{{ inputs.run_id }}"
+      source: "{{ inputs.source }}"
+      project: "{{ inputs.project }}"
+      raw_update: "{{ inputs.raw_update }}"
+      author: "{{ inputs.author }}"
+      goal: "{{ inputs.goal }}"
+      dry_run: "{{ inputs.dry_run }}"
+      github_username: "{{ inputs.github_username }}"
+      github_token: "{{ inputs.github_token }}"
+      selected_repo_json: "{{ inputs.selected_repo_json }}"
+      selected_commit_json: "{{ inputs.selected_commit_json }}"
+      selected_pr_json: "{{ inputs.selected_pr_json }}"
+      github_context_json: "{{ inputs.github_context_json }}"
+      style_analysis_json: "{{ inputs.style_analysis_json }}"
+      use_style_profile: "{{ inputs.use_style_profile }}"
+      delivery_webhook_url: "{{ inputs.delivery_webhook_url }}"
+      input_source: "{{ inputs.input_source }}"
+    wait: true
+
+  - id: extract_context
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: extract_context
+    inputs:
+      run_id: "{{ inputs.run_id }}"
+      source: "{{ inputs.source }}"
+      project: "{{ inputs.project }}"
+      raw_update: "{{ inputs.raw_update }}"
+      author: "{{ inputs.author }}"
+      github_username: "{{ inputs.github_username }}"
+      github_token: "{{ inputs.github_token }}"
+      selected_repo_json: "{{ inputs.selected_repo_json }}"
+      selected_commit_json: "{{ inputs.selected_commit_json }}"
+      selected_pr_json: "{{ inputs.selected_pr_json }}"
+      github_context_json: "{{ inputs.github_context_json }}"
+      input_source: "{{ inputs.input_source }}"
+    wait: true
+
+  - id: analyze
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: analyze_input
+    inputs:
+      raw_update: "{{ inputs.raw_update }}"
+      github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
+      style_profile_json: "{{ inputs.style_analysis_json }}"
+    wait: true
+
+  - id: analyze_style
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.style_analysis_json != '{}' }}"
+    then:
+      - id: analyze_linkedin_style
+        type: io.kestra.plugin.core.flow.Subflow
+        namespace: system.autopr
+        flowId: analyze_linkedin_style
+        inputs:
+          style_samples_json: "{{ inputs.style_analysis_json }}"
+        wait: true
+    else:
+      - id: skip_style_analysis
+        type: io.kestra.plugin.core.log.Log
+        message: "No LinkedIn style samples were provided. Generation will use the default style profile."
+
+  - id: generate
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: generate_posts
+    inputs:
+      raw_update: "{{ inputs.raw_update }}"
+      analysis_json: "{{ outputs.analyze.outputs.analysis }}"
+      github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
+      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+    wait: true
+    
+  - id: route
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: route_distribution
+    inputs:
+      analysis_json: "{{ outputs.analyze.outputs.analysis }}"
+      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+      goal: "{{ inputs.goal }}"
+      source: "{{ inputs.source }}"
+    wait: true
+
+  - id: check_review
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.route.outputs.requires_review == 'true' }}"
+    then:
+      - id: log_review_needed
+        type: io.kestra.plugin.core.log.Log
+        message: "Confidence is low. Manual review required. Skipping automatic delivery."
+    else:
+      - id: deliver_platforms
+        type: io.kestra.plugin.core.flow.EachSequential
+        value: "{{ outputs.route.outputs.selected_platforms }}"
+        tasks:
+          - id: deliver_platform_item
+            type: io.kestra.plugin.core.flow.Subflow
+            namespace: system.autopr
+            flowId: deliver_content
+            inputs:
+              run_id: "{{ inputs.run_id }}"
+              platform: "{{ taskrun.value }}"
+              content: "{% if taskrun.value == 'linkedin' %}{{ outputs.generate.outputs.linkedin }}{% elseif taskrun.value == 'x' %}{{ outputs.generate.outputs.x }}{% elseif taskrun.value == 'instagram' %}{{ outputs.generate.outputs.instagram }}{% elseif taskrun.value == 'whatsapp_dm' %}{{ outputs.generate.outputs.whatsapp_dm }}{% else %}Unknown{% endif %}"
+              dry_run: "{{ inputs.dry_run }}"
+              delivery_webhook_url: "{{ inputs.delivery_webhook_url }}"
+              routing_decision_json: "{{ outputs.route.outputs.routing_decision }}"
+              github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
+              analysis_json: "{{ outputs.analyze.outputs.analysis }}"
+              style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+            wait: true
+
+  - id: finalize
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: system.autopr
+    flowId: finalize_output
+    inputs:
+      run_id: "{{ inputs.run_id }}"
+      source: "{{ inputs.source }}"
+      input_source: "{{ inputs.input_source }}"
+      project: "{{ inputs.project }}"
+      author: "{{ inputs.author }}"
+      dry_run: "{{ inputs.dry_run }}"
+      github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
+      analysis_json: "{{ outputs.analyze.outputs.analysis }}"
+      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+      generated_posts_json: "{{ outputs.generate.outputs.generated_posts }}"
+      routing_decision_json: "{{ outputs.route.outputs.routing_decision }}"
+      delivery_status_json: "{}"
+      logs_json: "[]"
+      errors_json: "[]"
+      kestra_execution_id: "{{ execution.id }}"
+    wait: true
+
+errors:
+  - id: catch_all
+    type: io.kestra.plugin.core.log.Log
+    message: "Flow failed for {{ inputs.run_id }}. Alerting admin and preserving the failure snapshot."

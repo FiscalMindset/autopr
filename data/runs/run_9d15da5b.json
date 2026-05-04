@@ -1,0 +1,30 @@
+{
+  "id": "run_9d15da5b",
+  "timestamp": "2026-05-04T21:28:14.184470+00:00",
+  "source": "linkedin_style_analysis",
+  "status": "completed",
+  "sample_posts": [
+    "Shipped a new orchestration flow today. It turns GitHub commits into content and delivery states. The goal is better visibility and fewer manual handoffs. What would you automate next? #buildinpublic #kestra",
+    "We just added a style-aware analyzer for LinkedIn posts. It studies tone, hook style, CTA patterns, and hashtag density so each announcement feels more personal."
+  ],
+  "analysis": {
+    "tone": "professional",
+    "structure": "compact",
+    "hook_style": "insight-led",
+    "technical_depth": "high",
+    "audience": "builders",
+    "cta_pattern": "question-led",
+    "hashtag_pattern": {
+      "count": 2,
+      "examples": [
+        "#buildinpublic",
+        "#kestra"
+      ],
+      "style": "light"
+    },
+    "sample_count": 2,
+    "summary": "professional / insight-led / high",
+    "use_for_generation": true
+  },
+  "use_for_generation": true
+}

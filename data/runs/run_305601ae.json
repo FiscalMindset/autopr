@@ -1,0 +1,180 @@
+{
+  "run_id": "run_305601ae",
+  "kestra_execution_id": "2isvYCBI1wCbgczEQO1FvQ",
+  "dry_run": true,
+  "input_source": "github_commit",
+  "selected_repo": {
+    "owner": "algsoch",
+    "name": "data_extraction",
+    "full_name": "algsoch/data_extraction",
+    "html_url": null,
+    "description": null,
+    "default_branch": null
+  },
+  "selected_commit": null,
+  "selected_pr": null,
+  "generated_posts": {
+    "linkedin": "Shipping a meaningful update: Pointing to the guide for forking\n\nThis release tightens the orchestration loop across GitHub context, Kestra execution visibility, and content delivery.\n\nWhy it matters: the system now turns commits and PRs into structured distribution plans with explicit dry-run vs live delivery state.\n\n#Pointing #Guide #Forking",
+    "x": "Pointing to the guide for forking \u2014 now wired into an orchestrated delivery pipeline.\nGitHub signal in, Kestra topology out, delivery status visible. #BuildInPublic #Automation",
+    "instagram": "Behind the scenes update: Pointing to the guide for forking.\n\nWe\u2019re turning repo activity into a full content workflow with analysis, routing, and delivery tracking.\n\n#Pointing #Guide #Forking",
+    "whatsapp_dm": "Quick update for builders: Pointing to the guide for forking.\nThe system now traces the full path from GitHub input to content generation and delivery status."
+  },
+  "routing_decision": {
+    "platforms": [
+      "linkedin",
+      "x"
+    ],
+    "recipients": [
+      "builders",
+      "community",
+      "mentors"
+    ],
+    "reason": "technical build-in-public update",
+    "requires_review": false
+  },
+  "delivery_status": {
+    "linkedin": "dry_run_saved",
+    "x": "dry_run_saved",
+    "instagram": "dry_run_saved",
+    "whatsapp_dm": "dry_run_saved"
+  },
+  "analysis": {
+    "keywords": [
+      "pointing",
+      "guide",
+      "forking"
+    ],
+    "tone": "technical",
+    "hook_style": "insight-led",
+    "technical_depth": "high",
+    "audience": "builders",
+    "signals": [
+      "ui"
+    ]
+  },
+  "style_profile": {},
+  "execution_timeline": [
+    {
+      "step": "validate_input",
+      "status": "complete"
+    },
+    {
+      "step": "extract_github_context",
+      "status": "complete"
+    },
+    {
+      "step": "linkedin_style_analysis",
+      "status": "skipped"
+    },
+    {
+      "step": "parallel_generation",
+      "status": "complete"
+    },
+    {
+      "step": "routing",
+      "status": "complete"
+    },
+    {
+      "step": "delivery",
+      "status": "saved"
+    },
+    {
+      "step": "finalize",
+      "status": "pending"
+    }
+  ],
+  "logs": [
+    "2026-05-04T21:55:09.796005+00:00 [info] Accepted github_commit input for algsoch/data_extraction",
+    "2026-05-04T21:55:09.796108+00:00 [info] Generated posts for linkedin, x, instagram, whatsapp_dm",
+    "2026-05-04T21:55:09.796129+00:00 [info] Routing decision targets linkedin, x",
+    "2026-05-04T21:55:09.796135+00:00 [info] Dry run enabled; delivery will be saved locally."
+  ],
+  "errors": [],
+  "status": "running",
+  "payload": {
+    "source": "github_commit",
+    "project": "algsoch/data_extraction",
+    "raw_update": "Pointing to the guide for forking",
+    "author": "Vicky Kumar",
+    "goal": "build_in_public",
+    "dry_run": true,
+    "run_id": null,
+    "selected_repo": {
+      "owner": "algsoch",
+      "name": "data_extraction",
+      "full_name": "algsoch/data_extraction",
+      "html_url": null,
+      "description": null,
+      "default_branch": null
+    },
+    "selected_commit": null,
+    "selected_pr": null,
+    "github_username": "algsoch",
+    "github_token": null,
+    "github_context": {
+      "repo_count": 1,
+      "commit_count": 0,
+      "pr_count": 0,
+      "selected_repo": "algsoch/data_extraction",
+      "selected_commit": null,
+      "selected_pr": null
+    },
+    "style_analysis": null,
+    "use_style_profile": true,
+    "delivery_webhook_url": "https://hooks.example.com/autopr",
+    "input_source": "github_commit"
+  },
+  "created_at": "2026-05-04T21:55:09.796258+00:00",
+  "updated_at": "2026-05-04T21:55:09.963157+00:00",
+  "id": "run_305601ae",
+  "triggered_at": "2026-05-04T21:55:09.963127+00:00",
+  "kestra_response": {
+    "id": "2isvYCBI1wCbgczEQO1FvQ",
+    "namespace": "system.autopr",
+    "flowId": "autopr_main_flow",
+    "flowRevision": 4,
+    "inputs": {
+      "author": "Vicky Kumar",
+      "delivery_webhook_url": "https://hooks.example.com/autopr",
+      "dry_run": "true",
+      "github_context_json": "{\"repo_count\": 1, \"commit_count\": 0, \"pr_count\": 0, \"selected_repo\": \"algsoch/data_extraction\", \"selected_commit\": null, \"selected_pr\": null}",
+      "github_token": "None",
+      "github_username": "algsoch",
+      "goal": "build_in_public",
+      "input_source": "github_commit",
+      "project": "algsoch/data_extraction",
+      "raw_update": "Pointing to the guide for forking",
+      "run_id": "run_305601ae",
+      "selected_commit_json": "{}",
+      "selected_pr_json": "{}",
+      "selected_repo_json": "{\"owner\": \"algsoch\", \"name\": \"data_extraction\", \"full_name\": \"algsoch/data_extraction\", \"html_url\": null, \"description\": null, \"default_branch\": null}",
+      "source": "github_commit",
+      "style_analysis_json": "{}",
+      "use_style_profile": "true"
+    },
+    "labels": [
+      {
+        "key": "system.correlationId",
+        "value": "2isvYCBI1wCbgczEQO1FvQ"
+      }
+    ],
+    "state": {
+      "current": "CREATED",
+      "histories": [
+        {
+          "state": "CREATED",
+          "date": "2026-05-04T21:55:09.892288585Z"
+        }
+      ],
+      "duration": "PT0.056614667S",
+      "startDate": "2026-05-04T21:55:09.892288585Z"
+    },
+    "originalId": "2isvYCBI1wCbgczEQO1FvQ",
+    "deleted": false,
+    "metadata": {
+      "attemptNumber": 1,
+      "originalCreatedDate": "2026-05-04T21:55:09.892295001Z"
+    },
+    "url": "http://localhost:8080//ui/executions/system.autopr/autopr_main_flow/2isvYCBI1wCbgczEQO1FvQ"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "run_2b5598f3",
+  "timestamp": "2026-05-04T20:56:50.034247",
+  "source": "api",
+  "payload": {
+    "source": "github",
+    "project": "algsoch/kestra_learning",
+    "raw_update": "refactor(kestra): migrate execution flows to use Process runners and fix volume mounts",
+    "author": "Vicky Kumar",
+    "goal": "build_in_public"
+  },
+  "status": "running",
+  "kestra_execution_id": "pvsdWjvE2f4dTjNyBUrVB"
+}

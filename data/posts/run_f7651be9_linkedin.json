@@ -1,0 +1,8 @@
+{
+  "run_id": "run_f7651be9",
+  "platform": "linkedin",
+  "content": "Failed to generate: HTTP Error 429: Too Many Requests",
+  "timestamp": "2026-05-04T20:49:15.188503",
+  "status": "dry_run",
+  "dry_run": true
+}

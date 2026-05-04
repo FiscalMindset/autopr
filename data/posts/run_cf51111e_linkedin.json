@@ -1,0 +1,8 @@
+{
+  "run_id": "run_cf51111e",
+  "platform": "linkedin",
+  "content": "\ud83d\ude80 Engineering Update: Just shipped some major improvements!\n\nOur team has been hard at work, and we are thrilled to announce: 'refactor(kestra): migrate execution flows to use Process runners and fix volume mounts'. This release fundamentally changes how we approach edge cases and stability.\n\nA massive shoutout to the engineering team for their relentless dedication. If you're building in the same space, let's connect! \ud83d\udc47\n\n#BuildInPublic #SoftwareEngineering #TechInnovation",
+  "timestamp": "2026-05-04T20:55:42.997770",
+  "status": "dry_run",
+  "dry_run": true
+}

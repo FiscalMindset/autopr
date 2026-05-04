@@ -1,0 +1,149 @@
+id: finalize_output
+namespace: system.autopr
+description: "Aggregates the final run output, persists the summary, and aligns it with the frontend contract."
+
+inputs:
+  - id: run_id
+    type: STRING
+    required: true
+  - id: source
+    type: STRING
+    required: true
+  - id: input_source
+    type: STRING
+    required: true
+  - id: project
+    type: STRING
+    required: true
+  - id: author
+    type: STRING
+    required: true
+  - id: dry_run
+    type: STRING
+    required: true
+  - id: github_context_json
+    type: STRING
+    defaults: "{}"
+  - id: analysis_json
+    type: STRING
+    defaults: "{}"
+  - id: style_profile_json
+    type: STRING
+    defaults: "{}"
+  - id: generated_posts_json
+    type: STRING
+    defaults: "{}"
+  - id: routing_decision_json
+    type: STRING
+    defaults: "{}"
+  - id: delivery_status_json
+    type: STRING
+    defaults: "{}"
+  - id: logs_json
+    type: STRING
+    defaults: "[]"
+  - id: errors_json
+    type: STRING
+    defaults: "[]"
+  - id: kestra_execution_id
+    type: STRING
+    defaults: ""
+
+outputs:
+  - id: final_summary
+    type: JSON
+    value: "{{ outputs.finalize_task.vars.final_summary }}"
+
+tasks:
+  - id: finalize_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+      import os
+      from datetime import datetime
+
+      def parse_json(value, fallback):
+          try:
+              parsed = json.loads(value)
+              if isinstance(parsed, str):
+                  try:
+                      return json.loads(parsed)
+                  except Exception:
+                      return parsed
+              return parsed
+          except Exception:
+              return fallback
+
+      run_id = r'''{{ inputs.run_id }}'''
+      source = r'''{{ inputs.source }}'''
+      input_source = r'''{{ inputs.input_source }}'''
+      project = r'''{{ inputs.project }}'''
+      author = r'''{{ inputs.author }}'''
+      dry_run = r'''{{ inputs.dry_run }}'''.lower() == "true"
+      github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+      analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
+      style_profile = parse_json(r'''{{ inputs.style_profile_json }}''', {})
+      generated_posts = parse_json(r'''{{ inputs.generated_posts_json }}''', {})
+      routing_decision = parse_json(r'''{{ inputs.routing_decision_json }}''', {})
+      delivery_status = parse_json(r'''{{ inputs.delivery_status_json }}''', {})
+      logs = parse_json(r'''{{ inputs.logs_json }}''', [])
+      errors = parse_json(r'''{{ inputs.errors_json }}''', [])
+      kestra_execution_id = r'''{{ inputs.kestra_execution_id }}'''.strip() or None
+
+      posts_dir = "/data/posts"
+      runs_dir = "/data/runs"
+      os.makedirs(posts_dir, exist_ok=True)
+      os.makedirs(runs_dir, exist_ok=True)
+
+      if not delivery_status:
+          for platform in ["linkedin", "x", "instagram", "whatsapp_dm"]:
+              file_path = os.path.join(posts_dir, f"{run_id}_{platform}.json")
+              if os.path.exists(file_path):
+                  try:
+                      with open(file_path, "r") as handle:
+                          payload = json.load(handle)
+                      delivery_status[platform] = payload.get("status", "saved")
+                  except Exception:
+                      delivery_status[platform] = "saved"
+
+      execution_timeline = [
+          {"step": "validate_input", "status": "complete"},
+          {"step": "extract_github_context", "status": "complete" if github_context else "skipped"},
+          {"step": "linkedin_style_analysis", "status": "complete" if style_profile else "skipped"},
+          {"step": "parallel_generation", "status": "complete" if generated_posts else "pending"},
+          {"step": "routing", "status": "complete" if routing_decision else "pending"},
+          {"step": "delivery", "status": "saved" if delivery_status else ("queued" if not dry_run else "saved")},
+          {"step": "finalize", "status": "complete"},
+      ]
+
+      final_summary = {
+          "run_id": run_id,
+          "kestra_execution_id": kestra_execution_id,
+          "dry_run": dry_run,
+          "input_source": input_source,
+          "source": source,
+          "project": project,
+          "author": author,
+          "selected_repo": github_context.get("selected_repo") or github_context.get("full_name") or project,
+          "selected_commit": github_context.get("selected_commit"),
+          "selected_pr": github_context.get("selected_pr"),
+          "generated_posts": generated_posts,
+          "routing_decision": routing_decision,
+          "delivery_status": delivery_status,
+          "analysis": analysis,
+          "style_profile": style_profile,
+          "logs": logs,
+          "errors": errors,
+          "execution_timeline": execution_timeline,
+          "status": "completed" if not errors else "completed_with_errors",
+          "updated_at": datetime.utcnow().isoformat(),
+      }
+
+      output_path = os.path.join(runs_dir, f"{run_id}.json")
+      with open(output_path, "w") as handle:
+          json.dump(final_summary, handle, indent=2)
+
+      print('::{"outputs": {"final_summary": ' + json.dumps(json.dumps(final_summary)) + '}}::')

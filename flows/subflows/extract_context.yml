@@ -1,0 +1,137 @@
+id: extract_context
+namespace: system.autopr
+description: "Normalizes GitHub repo, commit, and pull request context for the orchestration pipeline."
+
+inputs:
+  - id: run_id
+    type: STRING
+    required: true
+  - id: source
+    type: STRING
+    required: true
+  - id: project
+    type: STRING
+    required: true
+  - id: raw_update
+    type: STRING
+    defaults: ""
+  - id: author
+    type: STRING
+    required: true
+  - id: github_username
+    type: STRING
+    defaults: ""
+  - id: github_token
+    type: STRING
+    defaults: ""
+  - id: selected_repo_json
+    type: STRING
+    defaults: "{}"
+  - id: selected_commit_json
+    type: STRING
+    defaults: "{}"
+  - id: selected_pr_json
+    type: STRING
+    defaults: "{}"
+  - id: github_context_json
+    type: STRING
+    defaults: "{}"
+  - id: input_source
+    type: STRING
+    defaults: "github_commit"
+
+outputs:
+  - id: github_context
+    type: JSON
+    value: "{{ outputs.extract_task.vars.github_context }}"
+
+tasks:
+  - id: extract_task
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+
+      def parse_json(value, fallback):
+          try:
+              parsed = json.loads(value)
+              if isinstance(parsed, str):
+                  try:
+                      return json.loads(parsed)
+                  except Exception:
+                      return parsed
+              return parsed
+          except Exception:
+              return fallback
+
+      run_id = r'''{{ inputs.run_id }}'''
+      source = r'''{{ inputs.source }}'''
+      project = r'''{{ inputs.project }}'''.strip()
+      raw_update = r'''{{ inputs.raw_update }}'''.strip()
+      author = r'''{{ inputs.author }}'''.strip()
+      github_username = r'''{{ inputs.github_username }}'''.strip()
+      selected_repo = parse_json(r'''{{ inputs.selected_repo_json }}''', {})
+      selected_commit = parse_json(r'''{{ inputs.selected_commit_json }}''', {})
+      selected_pr = parse_json(r'''{{ inputs.selected_pr_json }}''', {})
+      github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+      input_source = r'''{{ inputs.input_source }}'''.strip() or source
+
+      if isinstance(selected_repo, str):
+          selected_repo = parse_json(selected_repo, {})
+      if isinstance(selected_commit, str):
+          selected_commit = parse_json(selected_commit, {})
+      if isinstance(selected_pr, str):
+          selected_pr = parse_json(selected_pr, {})
+      
+      # Safely handle nested owner field
+      owner_info = selected_repo.get("owner", {})
+      if isinstance(owner_info, str):
+          owner_info = json.loads(owner_info) if owner_info.startswith("{") else {}
+      repo_owner = owner_info.get("login") if isinstance(owner_info, dict) else owner_info
+      repo_owner = repo_owner or github_username or (project.split("/")[0] if "/" in project else github_username or project)
+      repo_name = selected_repo.get("name") or (project.split("/")[1] if "/" in project else project)
+      full_name = selected_repo.get("full_name") or f"{repo_owner}/{repo_name}"
+
+      commit_message = selected_commit.get("message") or raw_update
+      commit_sha = selected_commit.get("sha")
+      pr_title = selected_pr.get("title") or raw_update
+      pr_number = selected_pr.get("number")
+
+      summary_bits = [bit for bit in [commit_message, pr_title, selected_repo.get("description"), github_context.get("summary")] if bit]
+      summary = " | ".join(summary_bits) if summary_bits else raw_update or f"Repository update for {full_name}"
+
+      context = {
+          "run_id": run_id,
+          "source": source,
+          "input_source": input_source,
+          "project": project,
+          "author": author,
+          "github_username": github_username,
+          "selected_repo": selected_repo or {
+              "owner": {"login": repo_owner},
+              "name": repo_name,
+              "full_name": full_name,
+          },
+          "selected_commit": selected_commit,
+          "selected_pr": selected_pr,
+          "repo_owner": repo_owner,
+          "repo_name": repo_name,
+          "full_name": full_name,
+          "commit_sha": commit_sha,
+          "commit_message": commit_message,
+          "pr_number": pr_number,
+          "pr_title": pr_title,
+          "raw_update": raw_update or summary,
+          "summary": summary,
+          "github_context": github_context,
+          "analysis_hints": {
+              "has_commit": bool(selected_commit),
+              "has_pr": bool(selected_pr),
+              "has_repo": bool(selected_repo),
+              "delivery_hint": "dry_run" if github_context.get("dry_run", True) else "live",
+          },
+      }
+
+      print('::{"outputs": {"github_context": ' + json.dumps(json.dumps(context)) + '}}::')
