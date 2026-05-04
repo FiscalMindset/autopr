@@ -1,0 +1,98 @@
+{
+  "run_id": "run_05dbd85e",
+  "platform": "x",
+  "content": "autopr enginer -> routed by Kestra, summarized by the AutoPR Engine. professional / announcement-led / high #BuildInPublic #Automation",
+  "timestamp": "2026-05-04T22:52:10.765188",
+  "status": "dry_run_saved",
+  "dry_run": true,
+  "delivery_webhook_url": "",
+  "routing_decision": {
+    "reason": "technical public-relations update needs broad social copy plus direct-message follow-up; build-in-public content gets public posts and specific-person DM follow-up",
+    "requires_review": false,
+    "source": "github_commit",
+    "recipients": [
+      "builders",
+      "community",
+      "mentors",
+      "warm_network"
+    ],
+    "platforms": [
+      "linkedin",
+      "x",
+      "instagram",
+      "whatsapp_dm"
+    ]
+  },
+  "github_context": {
+    "summary": "autopr enginer | autopr enginer",
+    "pr_title": "autopr enginer",
+    "selected_pr": {},
+    "input_source": "github_commit",
+    "run_id": "run_05dbd85e",
+    "author": "Vicky Kumar",
+    "selected_repo": {
+      "name": "autopr",
+      "owner": "FiscalMindset",
+      "default_branch": "main",
+      "full_name": "FiscalMindset/autopr",
+      "html_url": "https://github.com/FiscalMindset/autopr"
+    },
+    "project": "FiscalMindset/autopr",
+    "github_username": "FiscalMindset",
+    "source": "github_commit",
+    "commit_message": "autopr enginer",
+    "analysis_hints": {
+      "has_pr": false,
+      "has_repo": true,
+      "has_commit": true,
+      "delivery_hint": "dry_run"
+    },
+    "selected_commit": {
+      "author_date": "2026-05-04T22:04:02Z",
+      "author_name": "vicky kumar",
+      "message": "autopr enginer",
+      "sha": "34e3a9809cbaac46e582ee27da4ef1e537e99003",
+      "html_url": "https://github.com/FiscalMindset/autopr/commit/34e3a9809cbaac46e582ee27da4ef1e537e99003"
+    },
+    "commit_sha": "34e3a9809cbaac46e582ee27da4ef1e537e99003",
+    "full_name": "FiscalMindset/autopr",
+    "github_context": {
+      "selected_commit": "34e3a9809cbaac46e582ee27da4ef1e537e99003",
+      "commit_count": 1,
+      "public_relations_goal": "build_in_public",
+      "default_repo_url": "https://github.com/FiscalMindset/autopr.git",
+      "repo_count": 12,
+      "selected_repo": "FiscalMindset/autopr"
+    },
+    "repo_name": "autopr",
+    "repo_owner": "FiscalMindset",
+    "raw_update": "autopr enginer"
+  },
+  "analysis": {
+    "summary": "professional / announcement-led / high",
+    "audience": "builders",
+    "tone": "professional",
+    "keywords": [
+      "autopr",
+      "enginer"
+    ],
+    "is_milestone": false,
+    "topics": [
+      "general_update"
+    ],
+    "github_context_summary": "autopr enginer | autopr enginer",
+    "confidence": 0.8,
+    "cta_pattern": "soft-invite",
+    "hashtag_seed": [
+      "#BuildInPublic",
+      "#Automation",
+      "#Engineering"
+    ],
+    "hook_style": "announcement-led",
+    "is_hiring": false,
+    "is_technical": false,
+    "technical_depth": "high"
+  },
+  "style_profile": {},
+  "adapter_response": null
+}

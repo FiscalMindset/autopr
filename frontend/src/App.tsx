@@ -37,6 +37,23 @@ import {
 
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
 const KESTRA_UI_URL = import.meta.env.VITE_KESTRA_UI_URL ?? 'http://localhost:8080/ui/';
+const DEFAULT_GITHUB_USERNAME = import.meta.env.VITE_DEFAULT_GITHUB_USERNAME ?? 'FiscalMindset';
+const DEFAULT_GITHUB_REPO = import.meta.env.VITE_DEFAULT_GITHUB_REPO ?? 'FiscalMindset/autopr';
+const DEFAULT_GITHUB_REPO_URL = import.meta.env.VITE_DEFAULT_GITHUB_REPO_URL ?? 'https://github.com/FiscalMindset/autopr.git';
+const DEFAULT_AUTHOR = import.meta.env.VITE_DEFAULT_AUTHOR ?? 'Vicky Kumar';
+const DEFAULT_STYLE_SAMPLES = `I used to treat automation as a nice-to-have.
+
+Then I started wiring the boring steps together: repo activity, workflow context, delivery state, and logs.
+
+The lesson: a product feels serious when the invisible work becomes visible.
+
+#BuildInPublic #Automation #Engineering
+
+Shipping a small but important infra improvement today.
+
+The best part is not the feature itself. It is the traceability around it: what started the workflow, what ran in parallel, what got routed, and what was saved.
+
+That is the difference between a demo and a system.`;
 
 type RepoItem = {
   id: number;
@@ -69,6 +86,32 @@ type CommitItem = {
 };
 
 type PullRequestItem = {
+  number: number;
+  title: string;
+  state?: string;
+  html_url?: string;
+  merged_at?: string | null;
+  author_login?: string;
+};
+
+type RepoRefPayload = {
+  owner: string;
+  name: string;
+  full_name?: string;
+  html_url?: string;
+  description?: string;
+  default_branch?: string;
+};
+
+type CommitRefPayload = {
+  sha: string;
+  message: string;
+  author_name?: string;
+  author_date?: string;
+  html_url?: string;
+};
+
+type PullRequestRefPayload = {
   number: number;
   title: string;
   state?: string;
@@ -159,6 +202,13 @@ type ActionState = {
   executionId?: string;
 };
 
+type Notice = {
+  id: number;
+  tone: 'info' | 'success' | 'error';
+  title: string;
+  message: string;
+};
+
 type WorkflowPayload = {
   source: 'github_commit' | 'github_pr' | 'manual' | 'github_webhook';
   project: string;
@@ -166,9 +216,9 @@ type WorkflowPayload = {
   author: string;
   goal: string;
   dry_run: boolean;
-  selected_repo?: RepoItem;
-  selected_commit?: CommitItem;
-  selected_pr?: PullRequestItem;
+  selected_repo?: RepoRefPayload;
+  selected_commit?: CommitRefPayload;
+  selected_pr?: PullRequestRefPayload;
   github_username?: string;
   github_token?: string;
   github_context?: Record<string, unknown>;
@@ -180,9 +230,10 @@ type WorkflowPayload = {
 };
 
 const actionDefaults: Record<string, ActionState> = {
+  auto: { phase: 'idle', message: 'Ready to run the default AutoPR pipeline.' },
   repos: { phase: 'idle', message: 'Awaiting GitHub credentials.' },
   commits: { phase: 'idle', message: 'Select a repository to fetch commits.' },
-  prs: { phase: 'idle', message: 'Select a repository to fetch pull requests.' },
+  prs: { phase: 'idle', message: 'Optional GitHub pull request context is available after repo selection.' },
   style: { phase: 'idle', message: 'Paste LinkedIn samples to analyze style.' },
   preview: { phase: 'idle', message: 'Generate a preview to inspect content.' },
   kestra: { phase: 'idle', message: 'Kestra is ready to orchestrate a run.' },
@@ -210,6 +261,12 @@ function statusTone(phase: ActionPhase) {
   if (phase === 'error') return 'border-rose-500/30 bg-rose-500/10 text-rose-200';
   if (phase === 'loading') return 'border-amber-500/30 bg-amber-500/10 text-amber-100';
   return 'border-white/10 bg-white/5 text-slate-300';
+}
+
+function noticeTone(tone: Notice['tone']) {
+  if (tone === 'success') return 'border-emerald-500/30 bg-emerald-500/15 text-emerald-100';
+  if (tone === 'error') return 'border-rose-500/30 bg-rose-500/15 text-rose-100';
+  return 'border-cyan-500/30 bg-cyan-500/15 text-cyan-100';
 }
 
 function errorMessage(error: unknown) {
@@ -241,6 +298,41 @@ function countWords(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function toRepoRef(repo: RepoItem | null | undefined): RepoRefPayload | undefined {
+  if (!repo) return undefined;
+  return {
+    owner: repo.owner?.login || repo.full_name.split('/')[0] || DEFAULT_GITHUB_USERNAME,
+    name: repo.name,
+    full_name: repo.full_name,
+    html_url: repo.html_url,
+    description: repo.description,
+    default_branch: repo.default_branch,
+  };
+}
+
+function toCommitRef(commit: CommitItem | null | undefined): CommitRefPayload | undefined {
+  if (!commit) return undefined;
+  return {
+    sha: commit.sha,
+    message: commit.message,
+    author_name: commit.author_name,
+    author_date: commit.author_date,
+    html_url: commit.html_url,
+  };
+}
+
+function toPullRequestRef(pr: PullRequestItem | null | undefined): PullRequestRefPayload | undefined {
+  if (!pr) return undefined;
+  return {
+    number: pr.number,
+    title: pr.title,
+    state: pr.state,
+    html_url: pr.html_url,
+    merged_at: pr.merged_at,
+    author_login: pr.author_login,
+  };
+}
+
 function App() {
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [commits, setCommits] = useState<CommitItem[]>([]);
@@ -252,20 +344,21 @@ function App() {
   const [selectedPr, setSelectedPr] = useState<PullRequestItem | null>(null);
   const [preview, setPreview] = useState<RunRecord | null>(null);
   const [styleAnalysis, setStyleAnalysis] = useState<StyleAnalysis | null>(null);
-  const [styleSamples, setStyleSamples] = useState('');
-  const [githubUsername, setGitHubUsername] = useState('');
+  const [styleSamples, setStyleSamples] = useState(DEFAULT_STYLE_SAMPLES);
+  const [githubUsername, setGitHubUsername] = useState(DEFAULT_GITHUB_USERNAME);
   const [githubToken, setGitHubToken] = useState('');
-  const [author, setAuthor] = useState('Vicky Kumar');
-  const [project, setProject] = useState('autopr-engine');
+  const [author, setAuthor] = useState(DEFAULT_AUTHOR);
+  const [project, setProject] = useState(DEFAULT_GITHUB_REPO);
   const [rawUpdate, setRawUpdate] = useState('');
   const [goal, setGoal] = useState('build_in_public');
-  const [inputSource, setInputSource] = useState<'github_commit' | 'github_pr' | 'manual'>('github_commit');
+  const [inputSource, setInputSource] = useState<'github_commit' | 'manual'>('github_commit');
   const [dryRun, setDryRun] = useState(true);
   const [useStyleProfile, setUseStyleProfile] = useState(true);
   const [deliveryWebhookUrl, setDeliveryWebhookUrl] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<keyof GeneratedPosts>('linkedin');
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [actions, setActions] = useState(actionDefaults);
+  const [notices, setNotices] = useState<Notice[]>([]);
 
   const api = useMemo(() => axios.create({ baseURL: API_URL, timeout: 45000 }), []);
 
@@ -284,7 +377,7 @@ function App() {
     return [
       { label: 'Repositories', value: repos.length.toString(), tone: 'from-cyan-400 to-sky-500' },
       { label: 'Commits', value: commits.length.toString(), tone: 'from-emerald-400 to-lime-500' },
-      { label: 'PRs', value: pullRequests.length.toString(), tone: 'from-fuchsia-400 to-rose-500' },
+      { label: 'GitHub Pulls', value: pullRequests.length.toString(), tone: 'from-fuchsia-400 to-rose-500' },
       { label: 'Selected Platforms', value: platformCount.toString(), tone: 'from-amber-400 to-orange-500' },
       { label: 'Delivery Targets', value: deliveryCount.toString(), tone: 'from-violet-400 to-indigo-500' },
       { label: 'Runs', value: runs.length.toString(), tone: 'from-slate-300 to-slate-500' },
@@ -306,22 +399,30 @@ function App() {
     setActions((previous) => ({ ...previous, [key]: next }));
   };
 
+  const pushNotice = (tone: Notice['tone'], title: string, message: string) => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setNotices((previous) => [{ id, tone, title, message }, ...previous].slice(0, 4));
+    window.setTimeout(() => {
+      setNotices((previous) => previous.filter((notice) => notice.id !== id));
+    }, 5200);
+  };
+
   const buildWorkflowPayload = (overrides: Partial<WorkflowPayload> = {}): WorkflowPayload => ({
-    source: overrides.source ?? (inputSource === 'github_pr' ? 'github_pr' : inputSource === 'github_commit' ? 'github_commit' : 'manual'),
+    source: overrides.source ?? (inputSource === 'github_commit' ? 'github_commit' : 'manual'),
     project: overrides.project ?? selectedRepo?.full_name ?? project,
-    raw_update: overrides.raw_update ?? rawUpdate.trim() ?? selectedCommit?.message ?? selectedPr?.title ?? '',
+    raw_update: overrides.raw_update ?? (rawUpdate.trim() || selectedCommit?.message || selectedPr?.title || ''),
     author: overrides.author ?? author,
     goal: overrides.goal ?? goal,
     dry_run: overrides.dry_run ?? dryRun,
-    selected_repo: overrides.selected_repo ?? selectedRepo ?? undefined,
-    selected_commit: overrides.selected_commit ?? selectedCommit ?? undefined,
-    selected_pr: overrides.selected_pr ?? selectedPr ?? undefined,
+    selected_repo: overrides.selected_repo ?? toRepoRef(selectedRepo),
+    selected_commit: overrides.selected_commit ?? toCommitRef(selectedCommit),
+    selected_pr: overrides.selected_pr ?? toPullRequestRef(selectedPr),
     github_username: overrides.github_username ?? (githubUsername || undefined),
     github_token: overrides.github_token ?? (githubToken || undefined),
     github_context: overrides.github_context ?? {
       repo_count: repos.length,
       commit_count: commits.length,
-      pr_count: pullRequests.length,
+      github_pull_request_count: pullRequests.length,
       selected_repo: selectedRepo?.full_name ?? null,
       selected_commit: selectedCommit?.sha ?? null,
       selected_pr: selectedPr?.number ?? null,
@@ -352,95 +453,134 @@ function App() {
   };
 
   useEffect(() => {
-    void fetchRuns();
-    void fetchPosts();
-    const interval = window.setInterval(() => {
+    const refresh = () => {
       void fetchRuns();
       void fetchPosts();
-    }, 6000);
-    return () => window.clearInterval(interval);
+    };
+    const firstRefresh = window.setTimeout(refresh, 0);
+    const interval = window.setInterval(refresh, 6000);
+    return () => {
+      window.clearTimeout(firstRefresh);
+      window.clearInterval(interval);
+    };
+    // Polling intentionally owns its first render snapshot; action handlers update the same stores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchRepos = async () => {
-    if (!githubUsername.trim()) {
+  const fetchRepos = async (options: { username?: string; silent?: boolean; throwOnError?: boolean } = {}) => {
+    const username = (options.username ?? githubUsername).trim();
+    if (!username) {
       setAction('repos', { phase: 'error', message: 'Enter a GitHub username first.' });
-      return;
+      return [];
     }
 
     setAction('repos', { phase: 'loading', message: 'POST /api/github/fetch-repos', detail: 'Fetching repositories from GitHub.' });
     try {
       const response = await api.post('/github/fetch-repos', {
-        username: githubUsername.trim(),
+        username,
         token: githubToken.trim() || undefined,
         include_forks: true,
         include_private: true,
+        pinned_repo: DEFAULT_GITHUB_REPO,
       });
-      setRepos(response.data.items || []);
-      setSelectedRepo((previous) => previous ?? response.data.items?.[0] ?? null);
-      setProject(response.data.items?.[0]?.full_name || project);
+      const items = response.data.items || [];
+      setRepos(items);
+      setSelectedRepo((previous) => previous ?? items.find((repo: RepoItem) => repo.full_name === DEFAULT_GITHUB_REPO) ?? items[0] ?? null);
+      setProject(items.find((repo: RepoItem) => repo.full_name === DEFAULT_GITHUB_REPO)?.full_name || items[0]?.full_name || project);
       setAction('repos', {
         phase: 'success',
-        message: response.data.message || `Loaded ${response.data.items?.length || 0} repositories.`,
+        message: response.data.message || `Loaded ${items.length || 0} repositories.`,
         detail: response.data.auth_mode ? `Auth mode: ${response.data.auth_mode}` : undefined,
       });
+      if (!options.silent) {
+        pushNotice('success', 'Repositories loaded', response.data.message || `Loaded ${items.length} repositories.`);
+      }
+      return items as RepoItem[];
     } catch (error) {
       setAction('repos', { phase: 'error', message: 'GitHub repositories could not be fetched.', detail: errorMessage(error) });
+      pushNotice('error', 'Repository fetch failed', errorMessage(error));
+      if (options.throwOnError) {
+        throw error;
+      }
+      return [];
     }
   };
 
-  const fetchCommits = async () => {
-    if (!selectedRepo) {
+  const fetchCommits = async (repoOverride?: RepoItem, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
+    const repo = repoOverride ?? selectedRepo;
+    if (!repo) {
       setAction('commits', { phase: 'error', message: 'Select a repository before fetching commits.' });
-      return;
+      return [];
     }
 
-    setAction('commits', { phase: 'loading', message: 'POST /api/github/fetch-commits', detail: `Loading commits for ${selectedRepo.full_name}.` });
+    setAction('commits', { phase: 'loading', message: 'POST /api/github/fetch-commits', detail: `Loading commits for ${repo.full_name}.` });
     try {
       const response = await api.post('/github/fetch-commits', {
-        owner: selectedRepo.owner?.login || githubUsername || selectedRepo.full_name.split('/')[0],
-        repo: selectedRepo.name,
+        owner: repo.owner?.login || githubUsername || repo.full_name.split('/')[0],
+        repo: repo.name,
         token: githubToken.trim() || undefined,
       });
-      setCommits(response.data.items || []);
-      setSelectedCommit((previous) => previous ?? response.data.items?.[0] ?? null);
-      if (response.data.items?.[0]?.message) {
-        setRawUpdate(response.data.items[0].message);
+      const items = response.data.items || [];
+      setCommits(items);
+      setSelectedCommit((previous) => previous ?? items[0] ?? null);
+      if (items[0]?.message) {
+        setRawUpdate(items[0].message);
       }
-      setAction('commits', { phase: 'success', message: response.data.message || `Loaded ${response.data.items?.length || 0} commits.` });
+      setAction('commits', { phase: 'success', message: response.data.message || `Loaded ${items.length || 0} commits.` });
+      if (!options.silent) {
+        pushNotice('success', 'Commits loaded', response.data.message || `Loaded ${items.length} commits.`);
+      }
+      return items as CommitItem[];
     } catch (error) {
       setAction('commits', { phase: 'error', message: 'Commit fetch failed.', detail: errorMessage(error) });
+      pushNotice('error', 'Commit fetch failed', errorMessage(error));
+      if (options.throwOnError) {
+        throw error;
+      }
+      return [];
     }
   };
 
-  const fetchPullRequests = async () => {
-    if (!selectedRepo) {
-      setAction('prs', { phase: 'error', message: 'Select a repository before fetching PRs.' });
-      return;
+  const fetchPullRequests = async (repoOverride?: RepoItem, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
+    const repo = repoOverride ?? selectedRepo;
+    if (!repo) {
+      setAction('prs', { phase: 'error', message: 'Select a repository before fetching GitHub pull requests.' });
+      return [];
     }
 
-    setAction('prs', { phase: 'loading', message: 'POST /api/github/fetch-prs', detail: `Loading pull requests for ${selectedRepo.full_name}.` });
+    setAction('prs', { phase: 'loading', message: 'POST /api/github/fetch-prs', detail: `Loading optional GitHub pull request context for ${repo.full_name}.` });
     try {
       const response = await api.post('/github/fetch-prs', {
-        owner: selectedRepo.owner?.login || githubUsername || selectedRepo.full_name.split('/')[0],
-        repo: selectedRepo.name,
+        owner: repo.owner?.login || githubUsername || repo.full_name.split('/')[0],
+        repo: repo.name,
         token: githubToken.trim() || undefined,
       });
-      setPullRequests(response.data.items || []);
-      setSelectedPr((previous) => previous ?? response.data.items?.[0] ?? null);
-      if (!rawUpdate.trim() && response.data.items?.[0]?.title) {
-        setRawUpdate(response.data.items[0].title);
+      const items = response.data.items || [];
+      setPullRequests(items);
+      setSelectedPr((previous) => previous ?? items[0] ?? null);
+      if (!rawUpdate.trim() && items[0]?.title) {
+        setRawUpdate(items[0].title);
       }
-      setAction('prs', { phase: 'success', message: response.data.message || `Loaded ${response.data.items?.length || 0} PRs.` });
+      setAction('prs', { phase: 'success', message: response.data.message || `Loaded ${items.length || 0} GitHub pull requests.` });
+      if (!options.silent) {
+        pushNotice('success', 'GitHub pull requests loaded', response.data.message || `Loaded ${items.length} pull requests as optional context.`);
+      }
+      return items as PullRequestItem[];
     } catch (error) {
-      setAction('prs', { phase: 'error', message: 'Pull request fetch failed.', detail: errorMessage(error) });
+      setAction('prs', { phase: 'error', message: 'GitHub pull request fetch failed.', detail: errorMessage(error) });
+      pushNotice('error', 'GitHub pull request fetch failed', errorMessage(error));
+      if (options.throwOnError) {
+        throw error;
+      }
+      return [];
     }
   };
 
-  const analyzeStyle = async () => {
-    const samples = splitSamples(styleSamples);
+  const analyzeStyle = async (samplesOverride?: string[], options: { silent?: boolean; throwOnError?: boolean } = {}) => {
+    const samples = samplesOverride ?? splitSamples(styleSamples);
     if (samples.length === 0) {
       setAction('style', { phase: 'error', message: 'Add at least one sample LinkedIn post.' });
-      return;
+      return null;
     }
 
     setAction('style', { phase: 'loading', message: 'POST /api/linkedin/analyze-style', detail: 'Analyzing tone, hooks, CTA, and hashtags.' });
@@ -452,13 +592,22 @@ function App() {
       setStyleAnalysis(response.data.analysis);
       setUseStyleProfile(true);
       setAction('style', { phase: 'success', message: response.data.message || 'LinkedIn style analysis completed.' });
+      if (!options.silent) {
+        pushNotice('success', 'LinkedIn style analyzed', response.data.analysis?.summary || 'Style profile is ready for generation.');
+      }
+      return response.data.analysis as StyleAnalysis;
     } catch (error) {
       setAction('style', { phase: 'error', message: 'Style analysis failed.', detail: errorMessage(error) });
+      pushNotice('error', 'Style analysis failed', errorMessage(error));
+      if (options.throwOnError) {
+        throw error;
+      }
+      return null;
     }
   };
 
-  const generatePreview = async () => {
-    const workflowPayload = buildWorkflowPayload();
+  const generatePreview = async (payloadOverride?: WorkflowPayload, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
+    const workflowPayload = payloadOverride ?? buildWorkflowPayload();
     setAction('preview', { phase: 'loading', message: 'POST /api/generate', detail: 'Building content preview before orchestration.' });
     try {
       const response = await api.post('/generate', workflowPayload);
@@ -470,15 +619,24 @@ function App() {
         message: response.data.message || 'Preview generated.',
         executionId: nextPreview?.kestra_execution_id,
       });
+      if (!options.silent) {
+        pushNotice('success', 'Content generated', response.data.message || 'Preview is ready.');
+      }
       await fetchRuns();
+      return nextPreview;
     } catch (error) {
       setAction('preview', { phase: 'error', message: 'Preview generation failed.', detail: errorMessage(error) });
+      pushNotice('error', 'Preview generation failed', errorMessage(error));
+      if (options.throwOnError) {
+        throw error;
+      }
+      return null;
     }
   };
 
-  const triggerKestra = async (dryRunOverride?: boolean) => {
+  const triggerKestra = async (dryRunOverride?: boolean, payloadOverride?: WorkflowPayload, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
     const nextDryRun = typeof dryRunOverride === 'boolean' ? dryRunOverride : dryRun;
-    const workflowPayload = buildWorkflowPayload({ dry_run: nextDryRun, run_id: activePreview?.run_id || preview?.run_id });
+    const workflowPayload = payloadOverride ?? buildWorkflowPayload({ dry_run: nextDryRun, run_id: activePreview?.run_id || preview?.run_id });
     const statusKey = nextDryRun ? 'dryRun' : 'live';
     setDryRun(nextDryRun);
     setAction(statusKey, {
@@ -501,11 +659,20 @@ function App() {
         executionId,
       });
       setPreview((previous) => previous ? { ...previous, kestra_execution_id: executionId, status: 'running' } : previous);
+      if (!options.silent) {
+        pushNotice('success', 'Kestra execution started', executionId || 'Execution accepted by Kestra.');
+      }
       await fetchRuns();
+      return executionId as string | undefined;
     } catch (error) {
       const message = errorMessage(error);
       setAction(statusKey, { phase: 'error', message: nextDryRun ? 'Dry-run delivery failed.' : 'Live delivery failed.', detail: message });
       setAction('kestra', { phase: 'error', message: 'Kestra could not be triggered.', detail: message });
+      pushNotice('error', 'Kestra trigger failed', message);
+      if (options.throwOnError) {
+        throw error;
+      }
+      return undefined;
     }
   };
 
@@ -520,13 +687,122 @@ function App() {
       }
     } catch (error) {
       setAction('preview', { phase: 'error', message: 'Could not load run details.', detail: errorMessage(error) });
+      pushNotice('error', 'Run details unavailable', errorMessage(error));
     }
   };
+
+  const runAutoPR = async () => {
+    setAction('auto', {
+      phase: 'loading',
+      message: 'Running the full AutoPR pipeline.',
+      detail: `${DEFAULT_GITHUB_REPO_URL} -> GitHub context -> LinkedIn style -> Kestra dry run.`,
+    });
+    setDryRun(true);
+    pushNotice('info', 'AutoPR started', `Fetching ${DEFAULT_GITHUB_REPO} and preparing an orchestrated dry run.`);
+
+    try {
+      const loadedRepos = await fetchRepos({ username: DEFAULT_GITHUB_USERNAME, silent: true, throwOnError: true });
+      const repo = loadedRepos.find((item) => item.full_name === DEFAULT_GITHUB_REPO) ?? loadedRepos[0];
+      if (!repo) {
+        throw new Error(`No repositories returned for ${DEFAULT_GITHUB_USERNAME}.`);
+      }
+
+      setSelectedRepo(repo);
+      setProject(repo.full_name);
+
+      const loadedCommits = await fetchCommits(repo, { silent: true, throwOnError: true });
+      const commit = loadedCommits[0] ?? null;
+      const source = commit ? 'github_commit' : 'manual';
+      const updateText = commit?.message || `Latest repository activity for ${repo.full_name}`;
+      const styleProfile = styleAnalysis ?? await analyzeStyle(splitSamples(styleSamples || DEFAULT_STYLE_SAMPLES), { silent: true, throwOnError: true });
+
+      setSelectedCommit(commit);
+      setSelectedPr(null);
+      setInputSource(source);
+      setRawUpdate(updateText);
+
+      const workflowPayload = buildWorkflowPayload({
+        source,
+        project: repo.full_name,
+        raw_update: updateText,
+        author,
+        goal,
+        dry_run: true,
+        selected_repo: toRepoRef(repo),
+        selected_commit: toCommitRef(commit),
+        selected_pr: undefined,
+        github_username: DEFAULT_GITHUB_USERNAME,
+        github_token: githubToken.trim() || undefined,
+        github_context: {
+          repo_count: loadedRepos.length,
+          commit_count: loadedCommits.length,
+          public_relations_goal: goal,
+          selected_repo: repo.full_name,
+          selected_commit: commit?.sha ?? null,
+          default_repo_url: DEFAULT_GITHUB_REPO_URL,
+        },
+        style_analysis: styleProfile,
+        use_style_profile: Boolean(styleProfile),
+        input_source: source,
+      });
+
+      const nextPreview = await generatePreview(workflowPayload, { silent: true, throwOnError: true });
+      const executionId = await triggerKestra(true, { ...workflowPayload, run_id: nextPreview?.run_id }, { silent: true, throwOnError: true });
+
+      setAction('auto', {
+        phase: 'success',
+        message: 'AutoPR pipeline started.',
+        detail: `Generated content from ${source.replace('_', ' ')} and triggered Kestra execution ${executionId || 'pending'}.`,
+        executionId,
+      });
+      pushNotice('success', 'AutoPR pipeline started', `Run ${nextPreview?.run_id || 'created'} is now visible in Kestra.`);
+    } catch (error) {
+      const message = errorMessage(error);
+      setAction('auto', { phase: 'error', message: 'AutoPR pipeline failed.', detail: message });
+      pushNotice('error', 'AutoPR failed', message);
+    }
+  };
+
+  useEffect(() => {
+    if (!currentRunId || !currentExecutionId || activePreview?.status === 'completed' || activePreview?.status === 'failed') {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadRunDetails(currentRunId);
+      void fetchPosts();
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+    // The interval is keyed by the active run identity; helper functions are kept out to avoid restarting polling every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePreview?.status, currentExecutionId, currentRunId]);
 
   const selectedPlatformContent = currentGeneratedPosts?.[selectedPlatform] || '';
 
   return (
     <div className="min-h-screen bg-[#07111f] text-slate-100">
+      <div className="fixed right-4 top-4 z-50 flex w-[calc(100vw-2rem)] max-w-md flex-col gap-3">
+        <AnimatePresence>
+          {notices.map((notice) => (
+            <motion.div
+              key={notice.id}
+              initial={{ opacity: 0, y: -12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              className={`rounded-lg border p-4 shadow-[0_18px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl ${noticeTone(notice.tone)}`}
+            >
+              <div className="flex items-start gap-3">
+                {notice.tone === 'success' ? <CheckCircle2 size={18} /> : notice.tone === 'error' ? <XCircle size={18} /> : <Activity size={18} />}
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{notice.title}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-200">{notice.message}</div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-5 md:px-6 xl:px-8">
         <motion.header
           initial={{ opacity: 0, y: -14 }}
@@ -551,12 +827,23 @@ function App() {
                   AutoPR Engine
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 md:text-base">
-                  AI Content Orchestration & Distribution System. Pull real GitHub repos, inspect commits and pull requests,
+                  AI Content Orchestration & Distribution System. Pull real GitHub repos, inspect commits,
                   analyze LinkedIn style, preview platform content, and push the workflow through Kestra with full visibility.
                 </p>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:w-[360px] xl:grid-cols-1">
+            <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px] xl:grid-cols-1">
+              <button onClick={() => void runAutoPR()} className="group rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-left transition hover:border-emerald-300/60 hover:bg-emerald-400/20">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.3em] text-emerald-200">One Click</div>
+                    <div className="mt-1 flex items-center gap-2 text-sm font-medium text-white">
+                      {actions.auto.phase === 'loading' ? <Loader2 size={16} className="animate-spin text-emerald-200" /> : <Sparkles size={16} className="text-emerald-200" />} Run AutoPR
+                    </div>
+                  </div>
+                  <ArrowRight size={16} className="text-emerald-200 transition group-hover:translate-x-1" />
+                </div>
+              </button>
               <a href={KESTRA_UI_URL} target="_blank" rel="noreferrer" className="group rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 transition hover:border-cyan-400/40 hover:bg-slate-950">
                 <div className="flex items-center justify-between">
                   <div>
@@ -601,9 +888,9 @@ function App() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-semibold text-white">GitHub Intelligence</h2>
-                  <p className="text-sm text-slate-400">Fetch real repos, commits, and pull requests through the backend proxy.</p>
+                  <p className="text-sm text-slate-400">Default target: {DEFAULT_GITHUB_REPO}. The main path fetches the latest commit and turns it into platform content.</p>
                 </div>
-                  <button onClick={fetchRepos} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20">
+                  <button onClick={() => void fetchRepos()} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20">
                   {actions.repos.phase === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <GitBranch size={16} />}
                   Fetch Repos
                 </button>
@@ -630,7 +917,7 @@ function App() {
                   />
                 </label>
                 <label className="space-y-2 text-sm">
-                  <span className="text-slate-300">Goal</span>
+                  <span className="text-slate-300">Public Relations Goal</span>
                   <select value={goal} onChange={(event) => setGoal(event.target.value)} className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40">
                     <option value="general_update">General update</option>
                     <option value="build_in_public">Build in public</option>
@@ -644,7 +931,6 @@ function App() {
                   <span className="text-slate-300">Input Source</span>
                   <select value={inputSource} onChange={(event) => setInputSource(event.target.value as typeof inputSource)} className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition focus:border-cyan-400/40">
                     <option value="github_commit">GitHub commit</option>
-                    <option value="github_pr">GitHub PR</option>
                     <option value="manual">Manual</option>
                   </select>
                 </label>
@@ -671,6 +957,12 @@ function App() {
                             onClick={() => {
                               setSelectedRepo(repo);
                               setProject(repo.full_name);
+                              setCommits([]);
+                              setPullRequests([]);
+                              setSelectedCommit(null);
+                              setSelectedPr(null);
+                              setAction('commits', { phase: 'idle', message: `Ready to fetch commits for ${repo.full_name}.` });
+                              setAction('prs', { phase: 'idle', message: `Optional GitHub pull request context is ready for ${repo.full_name}.` });
                             }}
                             className={`rounded-2xl border p-4 text-left transition ${isSelected ? 'border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.2)]' : 'border-white/10 bg-slate-950/60 hover:border-white/20 hover:bg-slate-950'}`}
                           >
@@ -687,7 +979,7 @@ function App() {
                             <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-slate-400">
                               <span className="rounded-full border border-white/10 px-2 py-1">{repo.language || 'Unknown language'}</span>
                               <span className="rounded-full border border-white/10 px-2 py-1">★ {repo.stargazers_count ?? 0}</span>
-                              <span className="rounded-full border border-white/10 px-2 py-1">PRs {repo.open_issues_count ?? 0}</span>
+                              <span className="rounded-full border border-white/10 px-2 py-1">Issues {repo.open_issues_count ?? 0}</span>
                             </div>
                           </button>
                         );
@@ -698,17 +990,17 @@ function App() {
 
                 <div className="space-y-3">
                   <div className="grid gap-3">
-                    <button onClick={fetchCommits} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-left transition hover:border-cyan-400/40 hover:bg-slate-950">
+                    <button onClick={() => void fetchCommits()} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-left transition hover:border-cyan-400/40 hover:bg-slate-950">
                       <span className="flex items-center gap-2 text-sm text-white">
                         {actions.commits.phase === 'loading' ? <Loader2 size={16} className="animate-spin text-cyan-300" /> : <GitCommitVertical size={16} className="text-cyan-300" />}
                         Fetch Commits
                       </span>
                       <span className="text-xs text-slate-500">{selectedRepo?.full_name || 'select repo'}</span>
                     </button>
-                    <button onClick={fetchPullRequests} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-left transition hover:border-fuchsia-400/40 hover:bg-slate-950">
+                    <button onClick={() => void fetchPullRequests()} className="flex items-center justify-between rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-left transition hover:border-fuchsia-400/40 hover:bg-slate-950">
                       <span className="flex items-center gap-2 text-sm text-white">
                         {actions.prs.phase === 'loading' ? <Loader2 size={16} className="animate-spin text-fuchsia-300" /> : <GitPullRequest size={16} className="text-fuchsia-300" />}
-                        Fetch PRs
+                        Fetch GitHub Pulls
                       </span>
                       <span className="text-xs text-slate-500">{selectedRepo?.full_name || 'select repo'}</span>
                     </button>
@@ -747,7 +1039,7 @@ function App() {
 
                   <div className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
                     <div className="flex items-center justify-between text-sm text-slate-200">
-                      <span className="flex items-center gap-2 font-medium"><GitPullRequest size={15} className="text-fuchsia-300" /> Latest PRs</span>
+                      <span className="flex items-center gap-2 font-medium"><GitPullRequest size={15} className="text-fuchsia-300" /> Optional GitHub Pull Requests</span>
                       <span className="text-xs text-slate-500">{pullRequests.length}</span>
                     </div>
                     <div className="max-h-48 space-y-2 overflow-auto pr-1">
@@ -760,13 +1052,11 @@ function App() {
                             type="button"
                             onClick={() => {
                               setSelectedPr(pr);
-                              setRawUpdate(pr.title);
-                              setInputSource('github_pr');
                             }}
                             className={`w-full rounded-xl border p-3 text-left transition ${selectedPr?.number === pr.number ? 'border-fuchsia-400/40 bg-fuchsia-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-xs text-fuchsia-200">PR #{pr.number}</span>
+                              <span className="font-mono text-xs text-fuchsia-200">Pull #{pr.number}</span>
                               <span className="text-[11px] text-slate-500 capitalize">{pr.state || 'unknown'}</span>
                             </div>
                             <p className="mt-1 line-clamp-2 text-sm text-slate-200">{pr.title}</p>
@@ -779,10 +1069,10 @@ function App() {
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <ActionCard title="AutoPR Run" state={actions.auto} icon={Sparkles} />
                 <ActionCard title="Fetch Repos" state={actions.repos} icon={GitBranch} />
                 <ActionCard title="Fetch Commits" state={actions.commits} icon={GitCommitVertical} />
-                <ActionCard title="Fetch PRs" state={actions.prs} icon={GitPullRequest} />
-                <ActionCard title="Kestra Trigger" state={actions.kestra} icon={Workflow} />
+                <ActionCard title="GitHub Pulls" state={actions.prs} icon={GitPullRequest} />
               </div>
             </div>
 
@@ -792,7 +1082,7 @@ function App() {
                   <h2 className="text-xl font-semibold text-white">LinkedIn Style Analyzer</h2>
                   <p className="text-sm text-slate-400">Paste one or more sample posts and reuse the resulting profile for generation.</p>
                 </div>
-                <button onClick={analyzeStyle} className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-sm font-medium text-fuchsia-100 transition hover:bg-fuchsia-400/20">
+                <button onClick={() => void analyzeStyle()} className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-sm font-medium text-fuchsia-100 transition hover:bg-fuchsia-400/20">
                   {actions.style.phase === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                   Analyze Style
                 </button>
@@ -875,25 +1165,23 @@ function App() {
                     value={rawUpdate}
                     onChange={(event) => setRawUpdate(event.target.value)}
                     className="min-h-[190px] w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-400/40"
-                    placeholder="Paste a commit message, PR summary, or a manual update."
+                    placeholder="Paste a commit message, release note, audience brief, or manual update."
                   />
                 </label>
 
                 <div className="space-y-3">
                   <ActionCard title="Generate Content" state={actions.preview} icon={Sparkles} />
+                  <ActionCard title="Kestra Workflow" state={actions.kestra} icon={Workflow} />
                   <ActionCard title="Dry Run Delivery" state={actions.dryRun} icon={Send} />
                   <ActionCard title="Live Delivery" state={actions.live} icon={Globe2} />
-                  <button onClick={generatePreview} className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20">
+                  <button onClick={() => void generatePreview()} className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20">
                     Generate Content
                   </button>
-                  <button onClick={() => triggerKestra(true)} className="w-full rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/20">
-                    Trigger Kestra Workflow
+                  <button onClick={() => void triggerKestra(true)} className="w-full rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-medium text-emerald-100 transition hover:bg-emerald-400/20">
+                    Trigger Kestra Dry Run
                   </button>
-                  <button onClick={() => triggerKestra(true)} className="w-full rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20">
-                    Dry Run Delivery
-                  </button>
-                  <button onClick={() => triggerKestra(false)} className="w-full rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-100 transition hover:bg-rose-400/20">
-                    Live Delivery
+                  <button onClick={() => void triggerKestra(false)} className="w-full rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-100 transition hover:bg-rose-400/20">
+                    Trigger Live Adapter
                   </button>
                 </div>
               </div>
@@ -1190,7 +1478,7 @@ function App() {
         <footer className="rounded-[28px] border border-white/10 bg-white/5 p-5 text-sm text-slate-400 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              AutoPR Engine now exposes real repo fetching, commit and PR selection, LinkedIn style analysis, preview generation, and Kestra execution visibility.
+              AutoPR Engine now exposes real repo fetching, commit-first content generation, public relations routing, LinkedIn style analysis, preview generation, and Kestra execution visibility.
             </div>
             <div className="flex items-center gap-2 text-slate-300">
               <CheckCircle2 size={16} className="text-emerald-300" />

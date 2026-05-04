@@ -61,6 +61,18 @@ services:
       postgres:
         condition: service_started
 
+  kestra-init:
+    image: curlimages/curl:8.10.1
+    volumes:
+      - ./flows:/flows:ro
+      - ./scripts:/scripts:ro
+    environment:
+      - KESTRA_URL=http://kestra:8080
+      - FLOWS_DIR=/flows
+    command: ["/bin/sh", "/scripts/init_kestra.sh"]
+    depends_on:
+      - kestra
+
   backend:
     build: 
       context: ./backend

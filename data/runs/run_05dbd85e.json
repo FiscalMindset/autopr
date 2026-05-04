@@ -1,0 +1,113 @@
+{
+  "run_id": "run_05dbd85e",
+  "kestra_execution_id": "2eVcEXXfTaoqMm5OEhTTx6",
+  "dry_run": true,
+  "input_source": "github_commit",
+  "source": "github_commit",
+  "project": "FiscalMindset/autopr",
+  "author": "Vicky Kumar",
+  "selected_repo": {
+    "name": "autopr",
+    "owner": "FiscalMindset",
+    "default_branch": "main",
+    "full_name": "FiscalMindset/autopr",
+    "html_url": "https://github.com/FiscalMindset/autopr"
+  },
+  "selected_commit": {
+    "author_date": "2026-05-04T22:04:02Z",
+    "author_name": "vicky kumar",
+    "message": "autopr enginer",
+    "sha": "34e3a9809cbaac46e582ee27da4ef1e537e99003",
+    "html_url": "https://github.com/FiscalMindset/autopr/commit/34e3a9809cbaac46e582ee27da4ef1e537e99003"
+  },
+  "selected_pr": {},
+  "generated_posts": {
+    "x": "autopr enginer -> routed by Kestra, summarized by the AutoPR Engine. professional / announcement-led / high #BuildInPublic #Automation",
+    "whatsapp_dm": "Quick update: autopr enginer. The pipeline now traces from FiscalMindset/autopr through generation and delivery.",
+    "linkedin": "Shipping a meaningful update: autopr enginer\n\nWe now have a full orchestration path from FiscalMindset/autopr to content generation, platform routing, and delivery visibility.\n\nThis release is designed for builders who care about traceability, distribution, and repeatable workflows.\n\n#Autopr #Enginer",
+    "instagram": "Behind the scenes update: autopr enginer.\n\nWe are turning repo activity into a visual, traceable content workflow.\n\nBuilt for teams shipping in public."
+  },
+  "routing_decision": {
+    "reason": "technical public-relations update needs broad social copy plus direct-message follow-up; build-in-public content gets public posts and specific-person DM follow-up",
+    "requires_review": false,
+    "source": "github_commit",
+    "recipients": [
+      "builders",
+      "community",
+      "mentors",
+      "warm_network"
+    ],
+    "platforms": [
+      "linkedin",
+      "x",
+      "instagram",
+      "whatsapp_dm"
+    ]
+  },
+  "delivery_status": {
+    "linkedin": "dry_run_saved",
+    "x": "dry_run_saved",
+    "instagram": "dry_run_saved",
+    "whatsapp_dm": "dry_run_saved"
+  },
+  "analysis": {
+    "summary": "professional / announcement-led / high",
+    "audience": "builders",
+    "tone": "professional",
+    "keywords": [
+      "autopr",
+      "enginer"
+    ],
+    "is_milestone": false,
+    "topics": [
+      "general_update"
+    ],
+    "github_context_summary": "autopr enginer | autopr enginer",
+    "confidence": 0.8,
+    "cta_pattern": "soft-invite",
+    "hashtag_seed": [
+      "#BuildInPublic",
+      "#Automation",
+      "#Engineering"
+    ],
+    "hook_style": "announcement-led",
+    "is_hiring": false,
+    "is_technical": false,
+    "technical_depth": "high"
+  },
+  "style_profile": {},
+  "logs": [],
+  "errors": [],
+  "execution_timeline": [
+    {
+      "step": "validate_input",
+      "status": "complete"
+    },
+    {
+      "step": "extract_github_context",
+      "status": "complete"
+    },
+    {
+      "step": "linkedin_style_analysis",
+      "status": "skipped"
+    },
+    {
+      "step": "parallel_generation",
+      "status": "complete"
+    },
+    {
+      "step": "routing",
+      "status": "complete"
+    },
+    {
+      "step": "delivery",
+      "status": "saved"
+    },
+    {
+      "step": "finalize",
+      "status": "complete"
+    }
+  ],
+  "status": "completed",
+  "updated_at": "2026-05-04T22:52:11.524298"
+}

@@ -41,6 +41,9 @@ outputs:
   - id: delivery_logs
     type: JSON
     value: "{{ outputs.deliver_task.vars.delivery_logs }}"
+  - id: adapter_payload
+    type: JSON
+    value: "{{ outputs.deliver_task.vars.adapter_payload }}"
 
 tasks:
   - id: deliver_task
@@ -79,31 +82,23 @@ tasks:
       os.makedirs(posts_dir, exist_ok=True)
       file_path = os.path.join(posts_dir, f"{run_id}_{platform}.json")
 
-      status = "dry_run_saved" if dry_run else "missing_adapter_credentials"
-      adapter_response = None
+      if dry_run:
+          status = "dry_run_saved"
+      elif delivery_webhook_url:
+          status = "live_adapter_ready"
+      else:
+          status = "missing_adapter_credentials"
 
-      if not dry_run and delivery_webhook_url:
-          try:
-              import httpx
-
-              payload = {
-                  "run_id": run_id,
-                  "platform": platform,
-                  "content": content,
-                  "dry_run": dry_run,
-                  "routing_decision": routing_decision,
-                  "github_context": github_context,
-                  "analysis": analysis,
-                  "style_profile": style_profile,
-              }
-              response = httpx.post(delivery_webhook_url, json=payload, timeout=20.0)
-              response.raise_for_status()
-              status = "live_adapter_sent"
-              adapter_response = {"status_code": response.status_code}
-          except Exception as exc:
-              status = "delivery_failed"
-              adapter_response = {"error": str(exc)}
-              raise
+      adapter_payload = {
+          "run_id": run_id,
+          "platform": platform,
+          "content": content,
+          "dry_run": dry_run,
+          "routing_decision": routing_decision,
+          "github_context": github_context,
+          "analysis": analysis,
+          "style_profile": style_profile,
+      }
 
       payload = {
           "run_id": run_id,
@@ -117,7 +112,7 @@ tasks:
           "github_context": github_context,
           "analysis": analysis,
           "style_profile": style_profile,
-          "adapter_response": adapter_response,
+          "adapter_response": None,
       }
 
       with open(file_path, "w") as handle:
@@ -128,9 +123,35 @@ tasks:
           "status": status,
           "saved_path": file_path,
           "dry_run": dry_run,
-          "adapter_response": adapter_response,
+          "adapter_response": None,
       }
       delivery_summary = {platform: status}
       delivery_logs = [f"{platform}:{status}", f"saved:{file_path}"]
 
-      print('::{"outputs": {"delivery_record": ' + json.dumps(json.dumps(delivery_record)) + ', "delivery_summary": ' + json.dumps(json.dumps(delivery_summary)) + ', "delivery_logs": ' + json.dumps(json.dumps(delivery_logs)) + '}}::')
+      print('::{"outputs": {"delivery_record": ' + json.dumps(json.dumps(delivery_record)) + ', "delivery_summary": ' + json.dumps(json.dumps(delivery_summary)) + ', "delivery_logs": ' + json.dumps(json.dumps(delivery_logs)) + ', "adapter_payload": ' + json.dumps(json.dumps(adapter_payload)) + '}}::')
+
+  - id: maybe_dispatch_live_adapter
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.dry_run == 'false' and inputs.delivery_webhook_url != '' }}"
+    then:
+      - id: dispatch_live_adapter
+        type: io.kestra.plugin.core.http.Request
+        uri: "{{ inputs.delivery_webhook_url }}"
+        method: POST
+        contentType: application/json
+        body: "{{ outputs.deliver_task.vars.adapter_payload }}"
+        options:
+          readTimeout: PT20S
+          connectTimeout: PT10S
+          logLevel: INFO
+        retry:
+          type: constant
+          maxAttempt: 3
+          interval: PT5S
+      - id: log_live_adapter_sent
+        type: io.kestra.plugin.core.log.Log
+        message: "Live adapter accepted {{ inputs.platform }} for {{ inputs.run_id }} with HTTP {{ outputs.dispatch_live_adapter.code }}."
+    else:
+      - id: log_delivery_saved
+        type: io.kestra.plugin.core.log.Log
+        message: "{{ inputs.platform }} delivery persisted as {{ outputs.deliver_task.vars.delivery_summary }}."

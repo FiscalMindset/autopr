@@ -1,0 +1,36 @@
+{
+  "id": "run_cd2bda81",
+  "timestamp": "2026-05-04T22:49:31.010181+00:00",
+  "source": "linkedin_style_analysis",
+  "status": "completed",
+  "sample_posts": [
+    "I used to treat automation as a nice-to-have.",
+    "Then I started wiring the boring steps together: repo activity, workflow context, delivery state, and logs.",
+    "The lesson: a product feels serious when the invisible work becomes visible.",
+    "#BuildInPublic #Automation #Engineering",
+    "Shipping a small but important infra improvement today.",
+    "The best part is not the feature itself. It is the traceability around it: what started the workflow, what ran in parallel, what got routed, and what was saved.",
+    "That is the difference between a demo and a system."
+  ],
+  "analysis": {
+    "tone": "professional",
+    "structure": "multi-paragraph",
+    "hook_style": "announcement-led",
+    "technical_depth": "high",
+    "audience": "builders",
+    "cta_pattern": "soft-invite",
+    "hashtag_pattern": {
+      "count": 3,
+      "examples": [
+        "#BuildInPublic",
+        "#Automation",
+        "#Engineering"
+      ],
+      "style": "light"
+    },
+    "sample_count": 7,
+    "summary": "professional / announcement-led / high",
+    "use_for_generation": true
+  },
+  "use_for_generation": true
+}

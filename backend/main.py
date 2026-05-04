@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 logger = logging.getLogger("autopr.backend")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s")
@@ -23,6 +23,10 @@ KESTRA_NAMESPACE = os.getenv("KESTRA_NAMESPACE", "system.autopr")
 KESTRA_FLOW = os.getenv("KESTRA_FLOW", "autopr_main_flow")
 GITHUB_API_BASE = os.getenv("GITHUB_API_BASE", "https://api.github.com").rstrip("/")
 AUTOPR_MOCK_MODE = os.getenv("AUTOPR_MOCK_MODE", "false").lower() == "true"
+DEFAULT_GITHUB_USERNAME = os.getenv("DEFAULT_GITHUB_USERNAME", "FiscalMindset")
+DEFAULT_GITHUB_REPO_FULL_NAME = os.getenv("DEFAULT_GITHUB_REPO_FULL_NAME", "FiscalMindset/autopr")
+DEFAULT_GITHUB_REPO_URL = os.getenv("DEFAULT_GITHUB_REPO_URL", "https://github.com/FiscalMindset/autopr.git")
+DEFAULT_AUTHOR = os.getenv("DEFAULT_AUTHOR", "Vicky Kumar")
 
 allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
 
@@ -50,13 +54,14 @@ async def request_logger(request: Request, call_next):
 
 
 class GitHubReposRequest(BaseModel):
-    username: str = Field(min_length=1)
+    username: str = Field(default=DEFAULT_GITHUB_USERNAME, min_length=1)
     token: Optional[str] = None
     page: int = Field(default=1, ge=1)
-    per_page: int = Field(default=12, ge=1, le=100)
+    per_page: int = Field(default=30, ge=1, le=100)
     include_forks: bool = True
     include_private: bool = True
     use_mock: bool = False
+    pinned_repo: Optional[str] = DEFAULT_GITHUB_REPO_FULL_NAME
 
 
 class GitHubItemsRequest(BaseModel):
@@ -83,15 +88,26 @@ class StyleAnalysisRequest(BaseModel):
 
 
 class RepoRef(BaseModel):
-    owner: str
+    model_config = ConfigDict(extra="ignore")
+
+    owner: Union[str, Dict[str, Any]]
     name: str
     full_name: Optional[str] = None
     html_url: Optional[str] = None
     description: Optional[str] = None
     default_branch: Optional[str] = None
 
+    @field_validator("owner", mode="before")
+    @classmethod
+    def normalize_owner(cls, value):
+        if isinstance(value, dict):
+            return value.get("login") or value.get("name") or value.get("owner") or ""
+        return value
+
 
 class CommitRef(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     sha: str
     message: str
     author_name: Optional[str] = None
@@ -100,6 +116,8 @@ class CommitRef(BaseModel):
 
 
 class PRRef(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     number: int
     title: str
     state: Optional[str] = None
@@ -110,9 +128,9 @@ class PRRef(BaseModel):
 
 class GenerateRequest(BaseModel):
     source: str = Field(pattern="^(github_commit|github_pr|manual|github_webhook)$")
-    project: str = Field(min_length=1)
+    project: str = Field(default=DEFAULT_GITHUB_REPO_FULL_NAME, min_length=1)
     raw_update: Optional[str] = None
-    author: str = Field(min_length=1)
+    author: str = Field(default=DEFAULT_AUTHOR, min_length=1)
     goal: str = Field(default="general_update")
     dry_run: bool = True
     run_id: Optional[str] = None
@@ -161,6 +179,23 @@ def save_json_file(file_path: Path, payload: Dict[str, Any]) -> None:
 
 def make_run_id() -> str:
     return f"run_{uuid.uuid4().hex[:8]}"
+
+
+def parse_github_repo_ref(value: Optional[str]) -> Optional[Dict[str, str]]:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if cleaned.startswith("https://github.com/"):
+        cleaned = cleaned.removeprefix("https://github.com/")
+    elif cleaned.startswith("http://github.com/"):
+        cleaned = cleaned.removeprefix("http://github.com/")
+    if cleaned.endswith(".git"):
+        cleaned = cleaned[:-4]
+    cleaned = cleaned.strip("/")
+    parts = [part for part in cleaned.split("/") if part]
+    if len(parts) < 2:
+        return None
+    return {"owner": parts[0], "repo": parts[1], "full_name": f"{parts[0]}/{parts[1]}"}
 
 
 def github_headers(token: Optional[str]) -> Dict[str, str]:
@@ -293,6 +328,18 @@ def normalize_repo_item(repo: Dict[str, Any]) -> Dict[str, Any]:
             "html_url": owner.get("html_url"),
         },
     }
+
+
+def unique_repositories(repos: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen = set()
+    unique: List[Dict[str, Any]] = []
+    for repo in repos:
+        full_name = repo.get("full_name")
+        if not full_name or full_name in seen:
+            continue
+        seen.add(full_name)
+        unique.append(repo)
+    return unique
 
 
 def normalize_commit_item(commit: Dict[str, Any]) -> Dict[str, Any]:
@@ -432,9 +479,9 @@ def route_content(context: Dict[str, Any], style_profile: Dict[str, Any]) -> Dic
     reason_parts = []
 
     if goal in {"build_in_public", "technical_update"} or analysis.get("technical_depth") == "high":
-        selected_platforms.update({"x", "linkedin"})
-        recipients.update({"builders", "mentors"})
-        reason_parts.append("technical build-in-public update")
+        selected_platforms.update({"x", "linkedin", "instagram", "whatsapp_dm"})
+        recipients.update({"builders", "mentors", "warm_network"})
+        reason_parts.append("technical public-relations update needs broad social copy plus direct-message follow-up")
 
     if goal in {"hiring", "team_growth"} or analysis.get("audience") == "recruiters":
         selected_platforms.update({"linkedin", "whatsapp_dm"})
@@ -614,22 +661,22 @@ async def trigger_kestra_flow(run_id: str, payload: Dict[str, Any]) -> Dict[str,
     url = f"{KESTRA_API_URL}/executions/{KESTRA_NAMESPACE}/{KESTRA_FLOW}"
     inputs = {
         "run_id": run_id,
-        "source": payload.get("source", "manual"),
-        "project": payload.get("project", "unknown"),
-        "raw_update": payload.get("raw_update", ""),
-        "author": payload.get("author", "unknown"),
-        "goal": payload.get("goal", "general_update"),
+        "source": payload.get("source") or "manual",
+        "project": payload.get("project") or DEFAULT_GITHUB_REPO_FULL_NAME,
+        "raw_update": payload.get("raw_update") or "",
+        "author": payload.get("author") or DEFAULT_AUTHOR,
+        "goal": payload.get("goal") or "general_update",
         "dry_run": str(payload.get("dry_run", True)).lower(),
-        "github_username": payload.get("github_username", ""),
-        "github_token": payload.get("github_token", ""),
+        "github_username": payload.get("github_username") or DEFAULT_GITHUB_USERNAME,
+        "github_token": payload.get("github_token") or "",
         "selected_repo_json": json.dumps(payload.get("selected_repo") or {}, ensure_ascii=True),
         "selected_commit_json": json.dumps(payload.get("selected_commit") or {}, ensure_ascii=True),
         "selected_pr_json": json.dumps(payload.get("selected_pr") or {}, ensure_ascii=True),
         "github_context_json": json.dumps(payload.get("github_context") or {}, ensure_ascii=True),
         "style_analysis_json": json.dumps(payload.get("style_analysis") or {}, ensure_ascii=True),
         "use_style_profile": str(payload.get("use_style_profile", False)).lower(),
-        "delivery_webhook_url": payload.get("delivery_webhook_url", ""),
-        "input_source": payload.get("input_source") or payload.get("source", "manual"),
+        "delivery_webhook_url": payload.get("delivery_webhook_url") or "",
+        "input_source": payload.get("input_source") or payload.get("source") or "manual",
         "raw_payload_json": json.dumps(payload, ensure_ascii=True),
     }
 
@@ -700,10 +747,27 @@ def health_check():
     }
 
 
+@app.get("/api/config/defaults")
+def config_defaults():
+    return {
+        "github_username": DEFAULT_GITHUB_USERNAME,
+        "github_repo_full_name": DEFAULT_GITHUB_REPO_FULL_NAME,
+        "github_repo_url": DEFAULT_GITHUB_REPO_URL,
+        "project": DEFAULT_GITHUB_REPO_FULL_NAME,
+        "author": DEFAULT_AUTHOR,
+        "kestra_namespace": KESTRA_NAMESPACE,
+        "kestra_flow": KESTRA_FLOW,
+        "mock_mode": AUTOPR_MOCK_MODE,
+    }
+
+
 @app.post("/api/github/fetch-repos")
 async def fetch_repositories(req: GitHubReposRequest):
+    pinned_ref = parse_github_repo_ref(req.pinned_repo or DEFAULT_GITHUB_REPO_FULL_NAME)
+    username = req.username.strip() or (pinned_ref or {}).get("owner") or DEFAULT_GITHUB_USERNAME
+
     if req.use_mock or AUTOPR_MOCK_MODE:
-        items = mock_repositories(req.username)
+        items = mock_repositories(username)
         return {
             "items": items,
             "total_count": len(items),
@@ -713,7 +777,7 @@ async def fetch_repositories(req: GitHubReposRequest):
         }
 
     params = {"page": req.page, "per_page": req.per_page, "sort": "updated", "direction": "desc"}
-    repos = await github_api_json(f"/users/{req.username}/repos", token=req.token, params=params)
+    repos = await github_api_json(f"/users/{username}/repos", token=req.token, params=params)
     if not isinstance(repos, list):
         raise HTTPException(status_code=502, detail="Unexpected GitHub repositories payload")
 
@@ -722,12 +786,30 @@ async def fetch_repositories(req: GitHubReposRequest):
         filtered = [repo for repo in filtered if not repo.get("private")]
 
     items = [normalize_repo_item(repo) for repo in filtered]
+
+    pinned_item = None
+    pinned_error = None
+    if pinned_ref:
+        try:
+            pinned_repo = await github_api_json(f"/repos/{pinned_ref['owner']}/{pinned_ref['repo']}", token=req.token)
+            if isinstance(pinned_repo, dict):
+                pinned_item = normalize_repo_item(pinned_repo)
+        except HTTPException as exc:
+            pinned_error = exc.detail
+
+    if pinned_item:
+        items = unique_repositories([pinned_item, *items])
+
     return {
         "items": items,
         "total_count": len(items),
         "source": "github",
         "auth_mode": "token" if req.token else "public",
-        "message": f"Fetched {len(items)} repositories for {req.username}.",
+        "pinned_repo": pinned_ref.get("full_name") if pinned_ref else None,
+        "pinned_repo_loaded": bool(pinned_item),
+        "pinned_repo_error": pinned_error,
+        "message": f"Fetched {len(items)} repositories for {username}."
+        + (f" Pinned {pinned_ref['full_name']} first." if pinned_item and pinned_ref else ""),
     }
 
 

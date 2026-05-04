@@ -55,9 +55,9 @@ tasks:
       reasons = []
 
       if analysis.get("is_technical") or analysis.get("technical_depth") == "high":
-          platforms.update(["x", "linkedin"])
-          recipients.update(["builders", "mentors"])
-          reasons.append("technical build-in-public update")
+          platforms.update(["x", "linkedin", "instagram", "whatsapp_dm"])
+          recipients.update(["builders", "mentors", "warm_network"])
+          reasons.append("technical public-relations update needs broad social copy plus direct-message follow-up")
 
       if analysis.get("is_milestone") or goal == "milestone":
           platforms.update(["linkedin", "x", "instagram"])
@@ -69,8 +69,9 @@ tasks:
           reasons.append("audience includes recruiters or team leads")
 
       if goal == "build_in_public":
-          platforms.update(["linkedin", "x"])
-          reasons.append("build-in-public content favors LinkedIn and X")
+          platforms.update(["linkedin", "x", "instagram", "whatsapp_dm"])
+          recipients.update(["builders", "warm_network"])
+          reasons.append("build-in-public content gets public posts and specific-person DM follow-up")
 
       if style_profile.get("cta_pattern") == "question-led":
           recipients.add("engaged_followers")

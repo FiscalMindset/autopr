@@ -19,19 +19,25 @@ inputs:
 outputs:
   - id: generated_posts
     type: JSON
-    value: "{{ outputs.compile_posts.vars.generated_posts }}"
+    value: |
+      {
+        "linkedin": {{ outputs.gen_linkedin.vars.content | json }},
+        "x": {{ outputs.gen_x.vars.content | json }},
+        "instagram": {{ outputs.gen_instagram.vars.content | json }},
+        "whatsapp_dm": {{ outputs.gen_whatsapp_dm.vars.content | json }}
+      }
   - id: linkedin
     type: STRING
-    value: "{{ outputs.compile_posts.vars.linkedin }}"
+    value: "{{ outputs.gen_linkedin.vars.content }}"
   - id: x
     type: STRING
-    value: "{{ outputs.compile_posts.vars.x }}"
+    value: "{{ outputs.gen_x.vars.content }}"
   - id: instagram
     type: STRING
-    value: "{{ outputs.compile_posts.vars.instagram }}"
+    value: "{{ outputs.gen_instagram.vars.content }}"
   - id: whatsapp_dm
     type: STRING
-    value: "{{ outputs.compile_posts.vars.whatsapp_dm }}"
+    value: "{{ outputs.gen_whatsapp_dm.vars.content }}"
 
 tasks:
   - id: parallel_generation
@@ -150,20 +156,3 @@ tasks:
           github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
           content = f"Quick update: {raw}. The pipeline now traces from {github_context.get('full_name', 'GitHub')} through generation and delivery."
           print('::{"outputs": {"content": ' + json.dumps(content) + '}}::')
-
-  - id: compile_posts
-    type: io.kestra.plugin.scripts.python.Script
-    taskRunner:
-      type: io.kestra.plugin.core.runner.Process
-    warningOnStdErr: false
-    script: |
-      import json
-
-      generated_posts = {
-          "linkedin": r'''{{ outputs.gen_linkedin.outputs.content }}''',
-          "x": r'''{{ outputs.gen_x.outputs.content }}''',
-          "instagram": r'''{{ outputs.gen_instagram.outputs.content }}''',
-          "whatsapp_dm": r'''{{ outputs.gen_whatsapp_dm.outputs.content }}''',
-      }
-
-      print('::{"outputs": {"generated_posts": ' + json.dumps(json.dumps(generated_posts)) + ', "linkedin": ' + json.dumps(generated_posts["linkedin"]) + ', "x": ' + json.dumps(generated_posts["x"]) + ', "instagram": ' + json.dumps(generated_posts["instagram"]) + ', "whatsapp_dm": ' + json.dumps(generated_posts["whatsapp_dm"]) + '}}::')

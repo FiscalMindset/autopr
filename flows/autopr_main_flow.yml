@@ -51,6 +51,10 @@ inputs:
     defaults: "github_commit"
 
 tasks:
+  - id: execution_started
+    type: io.kestra.plugin.core.log.Log
+    message: "AutoPR run {{ inputs.run_id }} started for {{ inputs.project }} from {{ inputs.input_source }}."
+
   - id: validate_input
     type: io.kestra.plugin.core.flow.Subflow
     namespace: system.autopr
@@ -74,6 +78,10 @@ tasks:
       delivery_webhook_url: "{{ inputs.delivery_webhook_url }}"
       input_source: "{{ inputs.input_source }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
 
   - id: extract_context
     type: io.kestra.plugin.core.flow.Subflow
@@ -93,6 +101,32 @@ tasks:
       github_context_json: "{{ inputs.github_context_json }}"
       input_source: "{{ inputs.input_source }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
+
+  - id: github_plugin_enrichment
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ inputs.github_token != '' }}"
+    then:
+      - id: audit_repo_with_github_plugin
+        type: io.kestra.plugin.github.repositories.Search
+        oauthToken: "{{ inputs.github_token }}"
+        repository: "{{ inputs.project }}"
+        sort: UPDATED
+        order: DESC
+        retry:
+          type: constant
+          maxAttempt: 3
+          interval: PT3S
+      - id: log_github_plugin_enrichment
+        type: io.kestra.plugin.core.log.Log
+        message: "GitHub plugin enrichment completed for {{ inputs.project }}."
+    else:
+      - id: log_github_plugin_skipped
+        type: io.kestra.plugin.core.log.Log
+        message: "GitHub plugin enrichment skipped because no token was provided; backend public GitHub context will be used."
 
   - id: analyze
     type: io.kestra.plugin.core.flow.Subflow
@@ -103,6 +137,10 @@ tasks:
       github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
       style_profile_json: "{{ inputs.style_analysis_json }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
 
   - id: analyze_style
     type: io.kestra.plugin.core.flow.If
@@ -115,6 +153,10 @@ tasks:
         inputs:
           style_samples_json: "{{ inputs.style_analysis_json }}"
         wait: true
+        retry:
+          type: constant
+          maxAttempt: 3
+          interval: PT2S
     else:
       - id: skip_style_analysis
         type: io.kestra.plugin.core.log.Log
@@ -130,6 +172,10 @@ tasks:
       github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
       style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
     
   - id: route
     type: io.kestra.plugin.core.flow.Subflow
@@ -141,6 +187,10 @@ tasks:
       goal: "{{ inputs.goal }}"
       source: "{{ inputs.source }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
 
   - id: check_review
     type: io.kestra.plugin.core.flow.If
@@ -151,8 +201,9 @@ tasks:
         message: "Confidence is low. Manual review required. Skipping automatic delivery."
     else:
       - id: deliver_platforms
-        type: io.kestra.plugin.core.flow.EachSequential
-        value: "{{ outputs.route.outputs.selected_platforms }}"
+        type: io.kestra.plugin.core.flow.ForEach
+        values: "{{ outputs.route.outputs.selected_platforms }}"
+        concurrencyLimit: 0
         tasks:
           - id: deliver_platform_item
             type: io.kestra.plugin.core.flow.Subflow
@@ -169,6 +220,10 @@ tasks:
               analysis_json: "{{ outputs.analyze.outputs.analysis }}"
               style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
             wait: true
+            retry:
+              type: constant
+              maxAttempt: 3
+              interval: PT3S
 
   - id: finalize
     type: io.kestra.plugin.core.flow.Subflow
@@ -191,6 +246,14 @@ tasks:
       errors_json: "[]"
       kestra_execution_id: "{{ execution.id }}"
     wait: true
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT2S
+
+  - id: execution_completed
+    type: io.kestra.plugin.core.log.Log
+    message: "AutoPR run {{ inputs.run_id }} finalized for {{ inputs.project }}. Open execution {{ execution.id }} for logs and topology."
 
 errors:
   - id: catch_all
