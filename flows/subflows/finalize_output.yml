@@ -93,8 +93,9 @@ tasks:
       errors = parse_json(r'''{{ inputs.errors_json }}''', [])
       kestra_execution_id = r'''{{ inputs.kestra_execution_id }}'''.strip() or None
 
-      posts_dir = "/data/posts"
-      runs_dir = "/data/runs"
+      data_root = "/data" if os.path.isdir("/data") else os.path.join("/tmp", "kestra-wd", "autopr")
+      posts_dir = os.path.join(data_root, "posts")
+      runs_dir = os.path.join(data_root, "runs")
       os.makedirs(posts_dir, exist_ok=True)
       os.makedirs(runs_dir, exist_ok=True)
 

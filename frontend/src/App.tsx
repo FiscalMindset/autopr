@@ -9,10 +9,14 @@ import {
   Bot,
   CheckCircle2,
   Clock3,
+  Copy,
+  ExternalLink,
+  FileCode2,
   GitBranch,
   GitCommitVertical,
   GitPullRequest,
   Globe2,
+  ListChecks,
   Loader2,
   MessageCircle,
   MessageSquareText,
@@ -41,19 +45,6 @@ const DEFAULT_GITHUB_USERNAME = import.meta.env.VITE_DEFAULT_GITHUB_USERNAME ?? 
 const DEFAULT_GITHUB_REPO = import.meta.env.VITE_DEFAULT_GITHUB_REPO ?? 'FiscalMindset/autopr';
 const DEFAULT_GITHUB_REPO_URL = import.meta.env.VITE_DEFAULT_GITHUB_REPO_URL ?? 'https://github.com/FiscalMindset/autopr.git';
 const DEFAULT_AUTHOR = import.meta.env.VITE_DEFAULT_AUTHOR ?? 'Vicky Kumar';
-const DEFAULT_STYLE_SAMPLES = `I used to treat automation as a nice-to-have.
-
-Then I started wiring the boring steps together: repo activity, workflow context, delivery state, and logs.
-
-The lesson: a product feels serious when the invisible work becomes visible.
-
-#BuildInPublic #Automation #Engineering
-
-Shipping a small but important infra improvement today.
-
-The best part is not the feature itself. It is the traceability around it: what started the workflow, what ran in parallel, what got routed, and what was saved.
-
-That is the difference between a demo and a system.`;
 
 type RepoItem = {
   id: number;
@@ -135,6 +126,9 @@ type StyleAnalysis = {
   sample_count: number;
   summary: string;
   use_for_generation?: boolean;
+  source?: string;
+  source_urls?: string[];
+  style_rules?: string[];
 };
 
 type GeneratedPosts = {
@@ -193,6 +187,52 @@ type PostRecord = {
   dry_run: boolean;
 };
 
+type KestraTaskDefinition = {
+  id: string;
+  type: string;
+  plugin?: boolean;
+  subflow?: string;
+  condition?: string;
+  values?: string;
+};
+
+type KestraFlowDefinition = {
+  namespace: string;
+  flow_id: string;
+  revision?: number;
+  url?: string;
+  source_text?: string;
+  tasks?: KestraTaskDefinition[];
+  plugin_tasks?: KestraTaskDefinition[];
+  subflows?: string[];
+};
+
+type KestraTaskRun = {
+  id?: string;
+  task_id: string;
+  state?: string;
+  value?: string;
+  duration?: string;
+  outputs?: Record<string, unknown>;
+};
+
+type KestraExecutionDetails = {
+  execution_id: string;
+  flow_id?: string;
+  namespace?: string;
+  revision?: number;
+  state?: string;
+  duration?: string;
+  url?: string;
+  task_runs?: KestraTaskRun[];
+  logs?: Array<{
+    timestamp?: string;
+    level?: string;
+    task_id?: string;
+    message?: string;
+  }>;
+};
+
 type ActionPhase = 'idle' | 'loading' | 'success' | 'error';
 
 type ActionState = {
@@ -234,7 +274,7 @@ const actionDefaults: Record<string, ActionState> = {
   repos: { phase: 'idle', message: 'Awaiting GitHub credentials.' },
   commits: { phase: 'idle', message: 'Select a repository to fetch commits.' },
   prs: { phase: 'idle', message: 'Optional GitHub pull request context is available after repo selection.' },
-  style: { phase: 'idle', message: 'Paste LinkedIn samples to analyze style.' },
+  style: { phase: 'idle', message: 'Import Algsoch public social style before generation.' },
   preview: { phase: 'idle', message: 'Generate a preview to inspect content.' },
   kestra: { phase: 'idle', message: 'Kestra is ready to orchestrate a run.' },
   dryRun: { phase: 'idle', message: 'Dry-run delivery is ready.' },
@@ -298,6 +338,22 @@ function countWords(text: string) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function deliveryMeaning(status?: string) {
+  if (!status) return 'No delivery result yet.';
+  if (status.includes('dry_run')) return 'Not posted. Saved as copy/paste output.';
+  if (status.includes('missing_adapter')) return 'Not posted. Credentials or adapter missing.';
+  if (status.includes('live_adapter')) return 'Sent to live adapter. Platform posting depends on that adapter.';
+  if (status.includes('sent') || status.includes('posted')) return 'Posted or accepted by platform adapter.';
+  return status;
+}
+
+function executionStatusTone(state?: string) {
+  if (state === 'SUCCESS' || state === 'completed') return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-100';
+  if (state === 'FAILED' || state === 'failed') return 'border-rose-500/20 bg-rose-500/10 text-rose-100';
+  if (state === 'RUNNING' || state === 'running') return 'border-amber-500/20 bg-amber-500/10 text-amber-100';
+  return 'border-white/10 bg-white/5 text-slate-300';
+}
+
 function toRepoRef(repo: RepoItem | null | undefined): RepoRefPayload | undefined {
   if (!repo) return undefined;
   return {
@@ -344,7 +400,7 @@ function App() {
   const [selectedPr, setSelectedPr] = useState<PullRequestItem | null>(null);
   const [preview, setPreview] = useState<RunRecord | null>(null);
   const [styleAnalysis, setStyleAnalysis] = useState<StyleAnalysis | null>(null);
-  const [styleSamples, setStyleSamples] = useState(DEFAULT_STYLE_SAMPLES);
+  const [styleSamples, setStyleSamples] = useState('');
   const [githubUsername, setGitHubUsername] = useState(DEFAULT_GITHUB_USERNAME);
   const [githubToken, setGitHubToken] = useState('');
   const [author, setAuthor] = useState(DEFAULT_AUTHOR);
@@ -357,6 +413,9 @@ function App() {
   const [deliveryWebhookUrl, setDeliveryWebhookUrl] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<keyof GeneratedPosts>('linkedin');
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [kestraExecution, setKestraExecution] = useState<KestraExecutionDetails | null>(null);
+  const [flowDefinition, setFlowDefinition] = useState<KestraFlowDefinition | null>(null);
+  const [orchestrationTab, setOrchestrationTab] = useState<'topology' | 'logs' | 'flow' | 'outputs'>('topology');
   const [actions, setActions] = useState(actionDefaults);
   const [notices, setNotices] = useState<Notice[]>([]);
 
@@ -370,6 +429,7 @@ function App() {
   const currentTimeline = activePreview?.execution_timeline || [];
   const currentExecutionId = activePreview?.kestra_execution_id;
   const currentRunId = activePreview?.run_id || selectedRunId;
+  const currentExecutionUrl = kestraExecution?.url || (currentExecutionId ? `${KESTRA_UI_URL.replace(/\/$/, '')}/executions/system.autopr/autopr_main_flow/${currentExecutionId}` : '');
 
   const metrics = useMemo(() => {
     const platformCount = currentRouting?.platforms?.length ?? 0;
@@ -452,6 +512,37 @@ function App() {
     }
   };
 
+  const loadFlowDefinition = async () => {
+    try {
+      const response = await api.get('/kestra/flow-definition');
+      setFlowDefinition(response.data as KestraFlowDefinition);
+    } catch (error) {
+      setAction('kestra', { phase: 'error', message: 'Could not load Kestra flow definition.', detail: errorMessage(error) });
+    }
+  };
+
+  const loadKestraExecution = async (executionId: string) => {
+    try {
+      const response = await api.get(`/kestra/executions/${executionId}`);
+      setKestraExecution(response.data as KestraExecutionDetails);
+    } catch (error) {
+      setAction('kestra', { phase: 'error', message: 'Could not load Kestra execution.', detail: errorMessage(error) });
+    }
+  };
+
+  const copyText = async (label: string, text?: string) => {
+    if (!text) {
+      pushNotice('error', 'Nothing to copy', `${label} is empty.`);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      pushNotice('success', 'Copied', `${label} copied to clipboard.`);
+    } catch (error) {
+      pushNotice('error', 'Copy failed', errorMessage(error));
+    }
+  };
+
   useEffect(() => {
     const refresh = () => {
       void fetchRuns();
@@ -464,6 +555,15 @@ function App() {
       window.clearInterval(interval);
     };
     // Polling intentionally owns its first render snapshot; action handlers update the same stores.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const firstLoad = window.setTimeout(() => {
+      void loadFlowDefinition();
+    }, 0);
+    return () => window.clearTimeout(firstLoad);
+    // Loaded once to show the actual registered Kestra topology.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -606,6 +706,40 @@ function App() {
     }
   };
 
+  const importAlgsochStyle = async (options: { silent?: boolean; throwOnError?: boolean } = {}) => {
+    setAction('style', {
+      phase: 'loading',
+      message: 'POST /api/social/import-algsoch-style',
+      detail: 'Importing public Algsoch LinkedIn style signals for generation.',
+    });
+    try {
+      const response = await api.post('/social/import-algsoch-style', {
+        source: 'algsoch_linkedin',
+        use_for_generation: true,
+      });
+      const analysis = response.data.analysis as StyleAnalysis;
+      setStyleAnalysis(analysis);
+      setUseStyleProfile(true);
+      setAction('style', {
+        phase: 'success',
+        message: response.data.message || 'Algsoch public social style imported.',
+        detail: analysis.summary,
+      });
+      if (!options.silent) {
+        pushNotice('success', 'Algsoch style imported', analysis.summary);
+      }
+      return analysis;
+    } catch (error) {
+      const message = errorMessage(error);
+      setAction('style', { phase: 'error', message: 'Algsoch social style import failed.', detail: message });
+      pushNotice('error', 'Algsoch style import failed', message);
+      if (options.throwOnError) {
+        throw error;
+      }
+      return null;
+    }
+  };
+
   const generatePreview = async (payloadOverride?: WorkflowPayload, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
     const workflowPayload = payloadOverride ?? buildWorkflowPayload();
     setAction('preview', { phase: 'loading', message: 'POST /api/generate', detail: 'Building content preview before orchestration.' });
@@ -636,6 +770,16 @@ function App() {
 
   const triggerKestra = async (dryRunOverride?: boolean, payloadOverride?: WorkflowPayload, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
     const nextDryRun = typeof dryRunOverride === 'boolean' ? dryRunOverride : dryRun;
+    if (!nextDryRun && !(payloadOverride?.delivery_webhook_url || deliveryWebhookUrl).trim()) {
+      const message = 'Live mode needs a delivery adapter webhook URL or platform OAuth bridge. Kestra will not be triggered as a fake live run.';
+      setAction('live', { phase: 'error', message: 'Live adapter missing.', detail: message });
+      setAction('kestra', { phase: 'error', message: 'Kestra live trigger blocked.', detail: message });
+      pushNotice('error', 'Live adapter missing', message);
+      if (options.throwOnError) {
+        throw new Error(message);
+      }
+      return undefined;
+    }
     const workflowPayload = payloadOverride ?? buildWorkflowPayload({ dry_run: nextDryRun, run_id: activePreview?.run_id || preview?.run_id });
     const statusKey = nextDryRun ? 'dryRun' : 'live';
     setDryRun(nextDryRun);
@@ -662,6 +806,9 @@ function App() {
       if (!options.silent) {
         pushNotice('success', 'Kestra execution started', executionId || 'Execution accepted by Kestra.');
       }
+      if (executionId) {
+        void loadKestraExecution(executionId);
+      }
       await fetchRuns();
       return executionId as string | undefined;
     } catch (error) {
@@ -682,6 +829,9 @@ function App() {
       setPreview(response.data as RunRecord);
       setSelectedRunId(runId);
       setSelectedPlatform((response.data.generated_posts && Object.keys(response.data.generated_posts)[0]) as keyof GeneratedPosts || 'linkedin');
+      if (response.data.kestra_execution_id) {
+        void loadKestraExecution(response.data.kestra_execution_id);
+      }
       if (response.data.generated_posts?.linkedin) {
         setRawUpdate(response.data.payload?.raw_update as string || rawUpdate);
       }
@@ -692,19 +842,31 @@ function App() {
   };
 
   const runAutoPR = async () => {
+    const requestedDryRun = dryRun;
+    if (!requestedDryRun && !deliveryWebhookUrl.trim()) {
+      const message = 'Live mode needs a delivery adapter webhook URL or platform OAuth bridge. I will not silently dry-run a live request.';
+      setAction('auto', { phase: 'error', message: 'Live delivery is not configured.', detail: message });
+      setAction('live', { phase: 'error', message: 'Live adapter missing.', detail: message });
+      pushNotice('error', 'Live adapter missing', message);
+      return;
+    }
+
     setAction('auto', {
       phase: 'loading',
       message: 'Running the full AutoPR pipeline.',
-      detail: `${DEFAULT_GITHUB_REPO_URL} -> GitHub context -> LinkedIn style -> Kestra dry run.`,
+      detail: `Selected repo -> Kestra plugin import -> Algsoch social style -> ${requestedDryRun ? 'dry run' : 'live adapter'}.`,
     });
-    setDryRun(true);
-    pushNotice('info', 'AutoPR started', `Fetching ${DEFAULT_GITHUB_REPO} and preparing an orchestrated dry run.`);
+    pushNotice('info', 'AutoPR started', `Fetching ${selectedRepo?.full_name || DEFAULT_GITHUB_REPO} and preparing an orchestrated ${requestedDryRun ? 'dry run' : 'live adapter run'}.`);
 
     try {
-      const loadedRepos = await fetchRepos({ username: DEFAULT_GITHUB_USERNAME, silent: true, throwOnError: true });
-      const repo = loadedRepos.find((item) => item.full_name === DEFAULT_GITHUB_REPO) ?? loadedRepos[0];
+      let loadedRepos = repos;
+      let repo = selectedRepo;
       if (!repo) {
-        throw new Error(`No repositories returned for ${DEFAULT_GITHUB_USERNAME}.`);
+        loadedRepos = await fetchRepos({ username: githubUsername || DEFAULT_GITHUB_USERNAME, silent: true, throwOnError: true });
+        repo = loadedRepos.find((item) => item.full_name === project) ?? loadedRepos.find((item) => item.full_name === DEFAULT_GITHUB_REPO) ?? loadedRepos[0] ?? null;
+      }
+      if (!repo) {
+        throw new Error(`No repository selected or returned for ${githubUsername || DEFAULT_GITHUB_USERNAME}.`);
       }
 
       setSelectedRepo(repo);
@@ -714,7 +876,7 @@ function App() {
       const commit = loadedCommits[0] ?? null;
       const source = commit ? 'github_commit' : 'manual';
       const updateText = commit?.message || `Latest repository activity for ${repo.full_name}`;
-      const styleProfile = styleAnalysis ?? await analyzeStyle(splitSamples(styleSamples || DEFAULT_STYLE_SAMPLES), { silent: true, throwOnError: true });
+      const styleProfile = styleAnalysis ?? await importAlgsochStyle({ silent: true, throwOnError: true });
 
       setSelectedCommit(commit);
       setSelectedPr(null);
@@ -727,11 +889,11 @@ function App() {
         raw_update: updateText,
         author,
         goal,
-        dry_run: true,
+        dry_run: requestedDryRun,
         selected_repo: toRepoRef(repo),
         selected_commit: toCommitRef(commit),
         selected_pr: undefined,
-        github_username: DEFAULT_GITHUB_USERNAME,
+        github_username: repo.owner?.login || githubUsername || DEFAULT_GITHUB_USERNAME,
         github_token: githubToken.trim() || undefined,
         github_context: {
           repo_count: loadedRepos.length,
@@ -740,6 +902,7 @@ function App() {
           selected_repo: repo.full_name,
           selected_commit: commit?.sha ?? null,
           default_repo_url: DEFAULT_GITHUB_REPO_URL,
+          style_source: styleProfile?.source || 'algsoch_linkedin',
         },
         style_analysis: styleProfile,
         use_style_profile: Boolean(styleProfile),
@@ -747,7 +910,7 @@ function App() {
       });
 
       const nextPreview = await generatePreview(workflowPayload, { silent: true, throwOnError: true });
-      const executionId = await triggerKestra(true, { ...workflowPayload, run_id: nextPreview?.run_id }, { silent: true, throwOnError: true });
+      const executionId = await triggerKestra(requestedDryRun, { ...workflowPayload, run_id: nextPreview?.run_id }, { silent: true, throwOnError: true });
 
       setAction('auto', {
         phase: 'success',
@@ -768,15 +931,33 @@ function App() {
       return;
     }
 
+    const firstExecutionLoad = window.setTimeout(() => {
+      void loadKestraExecution(currentExecutionId);
+    }, 0);
     const interval = window.setInterval(() => {
       void loadRunDetails(currentRunId);
       void fetchPosts();
+      void loadKestraExecution(currentExecutionId);
     }, 4000);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearTimeout(firstExecutionLoad);
+      window.clearInterval(interval);
+    };
     // The interval is keyed by the active run identity; helper functions are kept out to avoid restarting polling every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePreview?.status, currentExecutionId, currentRunId]);
+
+  useEffect(() => {
+    if (currentExecutionId && (activePreview?.status === 'completed' || activePreview?.status === 'failed')) {
+      const finalLoad = window.setTimeout(() => {
+        void loadKestraExecution(currentExecutionId);
+      }, 0);
+      return () => window.clearTimeout(finalLoad);
+    }
+    // Keep the final Kestra snapshot visible after polling stops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePreview?.status, currentExecutionId]);
 
   const selectedPlatformContent = currentGeneratedPosts?.[selectedPlatform] || '';
 
@@ -1080,12 +1261,18 @@ function App() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-xl font-semibold text-white">LinkedIn Style Analyzer</h2>
-                  <p className="text-sm text-slate-400">Paste one or more sample posts and reuse the resulting profile for generation.</p>
+                  <p className="text-sm text-slate-400">Import Algsoch public social style or paste additional posts to override it.</p>
                 </div>
-                <button onClick={() => void analyzeStyle()} className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-sm font-medium text-fuchsia-100 transition hover:bg-fuchsia-400/20">
-                  {actions.style.phase === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                  Analyze Style
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => void importAlgsochStyle()} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-cyan-400/20">
+                    {actions.style.phase === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
+                    Import Algsoch Style
+                  </button>
+                  <button onClick={() => void analyzeStyle()} className="inline-flex items-center gap-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-4 py-2 text-sm font-medium text-fuchsia-100 transition hover:bg-fuchsia-400/20">
+                    {actions.style.phase === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                    Analyze Pasted Style
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
@@ -1121,6 +1308,7 @@ function App() {
                       <StatPill label="Audience" value={styleAnalysis.audience} />
                       <StatPill label="CTA Pattern" value={styleAnalysis.cta_pattern} />
                       <StatPill label="Hashtags" value={`${styleAnalysis.hashtag_pattern.count} / ${styleAnalysis.hashtag_pattern.style}`} />
+                      {styleAnalysis.source && <StatPill label="Source" value={styleAnalysis.source} />}
                     </div>
                   )}
                 </div>
@@ -1232,6 +1420,53 @@ function App() {
                 <SummaryBadge label="Style Analysis" value={styleAnalysis ? 'enabled' : 'off'} />
               </div>
 
+              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-white">
+                      <ExternalLink size={16} className="text-cyan-300" /> Kestra Direct Links
+                    </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      Open the real Kestra UI for topology, Gantt, logs, inputs, outputs, and task retries.
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <a
+                      href={currentExecutionUrl || KESTRA_UI_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      <ExternalLink size={15} /> Execution
+                    </a>
+                    <a
+                      href={flowDefinition?.url || `${KESTRA_UI_URL.replace(/\/$/, '')}/flows/edit/system.autopr/autopr_main_flow`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-cyan-400/40"
+                    >
+                      <FileCode2 size={15} /> Flow
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentExecutionId) void loadKestraExecution(currentExecutionId);
+                        void loadFlowDefinition();
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:border-cyan-400/40"
+                    >
+                      <RefreshCw size={15} /> Sync
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <SummaryBadge label="Kestra State" value={kestraExecution?.state || activePreview?.status || 'not loaded'} />
+                  <SummaryBadge label="Flow Revision" value={String(kestraExecution?.revision || flowDefinition?.revision || 'pending')} />
+                  <SummaryBadge label="Plugins Visible" value={String(flowDefinition?.plugin_tasks?.length || 0)} />
+                </div>
+              </div>
+
               <div className="mt-4 grid gap-4 xl:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
                   <div className="flex items-center justify-between text-sm text-slate-300">
@@ -1315,7 +1550,20 @@ function App() {
                           <div className="text-xs uppercase tracking-[0.25em] text-slate-500">{platformMeta[selectedPlatform]?.label || selectedPlatform}</div>
                           <div className="mt-1 text-sm text-slate-300">{currentRouting?.reason || 'Routing decision pending.'}</div>
                         </div>
-                        <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">{selectedPlatformContent.length} chars</span>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(currentDelivery?.[selectedPlatform])}`}>
+                            {currentDelivery?.[selectedPlatform] || 'draft'}
+                          </span>
+                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">{deliveryMeaning(currentDelivery?.[selectedPlatform])}</span>
+                          <button
+                            type="button"
+                            onClick={() => void copyText(`${platformMeta[selectedPlatform]?.label || selectedPlatform} post`, selectedPlatformContent)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 transition hover:border-cyan-400/40 hover:bg-cyan-400/10"
+                          >
+                            <Copy size={14} /> Copy
+                          </button>
+                          <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">{selectedPlatformContent.length} chars</span>
+                        </div>
                       </div>
                       <pre className="mt-4 whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-4 text-sm leading-7 text-slate-100">
 {selectedPlatformContent}
@@ -1391,6 +1639,128 @@ function App() {
               </div>
             </div>
 
+            <div className="rounded-[28px] border border-white/10 bg-white/5 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Kestra Orchestration Console</h2>
+                  <p className="text-sm text-slate-400">Frontend mirror of the Kestra topology, plugin tasks, logs, flow definition, and output handoff state.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(['topology', 'logs', 'flow', 'outputs'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setOrchestrationTab(tab)}
+                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm capitalize transition ${orchestrationTab === tab ? 'bg-cyan-400 text-slate-950' : 'border border-white/10 bg-slate-950/70 text-slate-200 hover:border-cyan-400/40'}`}
+                    >
+                      {tab === 'topology' ? <ListChecks size={15} /> : tab === 'logs' ? <Activity size={15} /> : tab === 'flow' ? <FileCode2 size={15} /> : <MessageSquareText size={15} />}
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {orchestrationTab === 'topology' && (
+                <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                    <div className="flex items-center justify-between text-sm text-slate-300">
+                      <span className="flex items-center gap-2"><Workflow size={16} className="text-cyan-300" /> Kestra Plugins Used</span>
+                      <span className="text-xs text-slate-500">{flowDefinition?.plugin_tasks?.length || 0} plugin tasks</span>
+                    </div>
+                    <div className="mt-3 max-h-80 space-y-2 overflow-auto pr-1">
+                      {(flowDefinition?.plugin_tasks || []).map((task) => (
+                        <div key={`${task.id}-${task.type}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                          <div className="text-sm font-medium text-white">{task.id}</div>
+                          <div className="mt-1 break-words font-mono text-xs text-cyan-200">{task.type}</div>
+                          {task.subflow && <div className="mt-2 text-xs text-slate-400">Subflow: {task.subflow}</div>}
+                        </div>
+                      ))}
+                      {!flowDefinition?.plugin_tasks?.length && <div className="text-sm text-slate-500">Flow definition not loaded yet.</div>}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                    <div className="flex items-center justify-between text-sm text-slate-300">
+                      <span className="flex items-center gap-2"><GitBranch size={16} className="text-fuchsia-300" /> Execution Task Runs</span>
+                      <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(kestraExecution?.state)}`}>{kestraExecution?.state || 'not loaded'}</span>
+                    </div>
+                    <div className="mt-3 max-h-80 space-y-2 overflow-auto pr-1">
+                      {(kestraExecution?.task_runs || []).map((task) => (
+                        <div key={task.id || `${task.task_id}-${task.value || ''}`} className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-3 md:grid-cols-[1fr_auto]">
+                          <div className="min-w-0">
+                            <div className="break-words text-sm font-medium text-white">{task.task_id}{task.value ? ` / ${task.value}` : ''}</div>
+                            <div className="mt-1 text-xs text-slate-500">{task.duration || 'duration pending'}</div>
+                          </div>
+                          <span className={`h-fit rounded-full border px-3 py-1 text-xs ${executionStatusTone(task.state)}`}>{task.state || 'pending'}</span>
+                        </div>
+                      ))}
+                      {!kestraExecution?.task_runs?.length && <div className="text-sm text-slate-500">Start or select a run to load execution tasks.</div>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {orchestrationTab === 'logs' && (
+                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                  {(kestraExecution?.logs || []).length ? (
+                    kestraExecution?.logs?.map((log, index) => (
+                      <div key={`${log.timestamp}-${index}`} className="mb-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 font-mono text-xs leading-5 text-slate-300">
+                        <span className="text-slate-500">{formatTime(log.timestamp)}</span> <span className="text-cyan-200">{log.level}</span> <span className="text-amber-200">{log.task_id || '-'}</span> {log.message}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-slate-500">No Kestra logs loaded yet. Use Sync after starting a run.</div>
+                  )}
+                </div>
+              )}
+
+              {orchestrationTab === 'flow' && (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-300">
+                    <span>{flowDefinition?.namespace || 'system.autopr'} / {flowDefinition?.flow_id || 'autopr_main_flow'}</span>
+                    <button
+                      type="button"
+                      onClick={() => void copyText('Kestra flow definition', flowDefinition?.source_text)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-cyan-400/40"
+                    >
+                      <Copy size={14} /> Copy Flow
+                    </button>
+                  </div>
+                  <pre className="max-h-[460px] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-slate-200">
+{flowDefinition?.source_text || 'Flow definition not loaded yet.'}
+                  </pre>
+                </div>
+              )}
+
+              {orchestrationTab === 'outputs' && (
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {currentGeneratedPosts ? Object.entries(currentGeneratedPosts).map(([platform, content]) => {
+                    const status = currentDelivery?.[platform] || 'draft_generated';
+                    return (
+                      <div key={platform} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-medium text-white">{platformMeta[platform as keyof typeof platformMeta]?.label || platform}</div>
+                            <div className="mt-1 text-xs text-slate-400">{deliveryMeaning(status)}</div>
+                          </div>
+                          <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(status)}`}>{status}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void copyText(`${platform} output`, content)}
+                          className="mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-400/20"
+                        >
+                          <Copy size={14} /> Copy Equivalent Post
+                        </button>
+                      </div>
+                    );
+                  }) : (
+                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Generated platform outputs will appear here.</div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-6 xl:grid-cols-2">
               <div className="rounded-[28px] border border-white/10 bg-white/5 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-6">
                 <div className="flex items-center justify-between gap-3">
@@ -1463,9 +1833,16 @@ function App() {
                         </div>
                         <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-slate-300">{post.content}</p>
                         <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-                          <span>{post.status}</span>
+                          <span>{post.status} • {deliveryMeaning(post.status)}</span>
                           <span>{post.dry_run ? 'dry_run=true' : 'dry_run=false'}</span>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => void copyText(`${post.platform} saved output`, post.content)}
+                          className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-cyan-400/40"
+                        >
+                          <Copy size={14} /> Copy
+                        </button>
                       </div>
                     ))
                   )}

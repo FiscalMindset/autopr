@@ -78,7 +78,8 @@ tasks:
       analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
       style_profile = parse_json(r'''{{ inputs.style_profile_json }}''', {})
 
-      posts_dir = "/data/posts"
+      data_root = "/data" if os.path.isdir("/data") else os.path.join("/tmp", "kestra-wd", "autopr")
+      posts_dir = os.path.join(data_root, "posts")
       os.makedirs(posts_dir, exist_ok=True)
       file_path = os.path.join(posts_dir, f"{run_id}_{platform}.json")
 

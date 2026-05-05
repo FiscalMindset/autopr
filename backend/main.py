@@ -19,6 +19,7 @@ RUNS_DIR = DATA_DIR / "runs"
 POSTS_DIR = DATA_DIR / "posts"
 
 KESTRA_API_URL = os.getenv("KESTRA_API_URL", "http://kestra:8080/api/v1").rstrip("/")
+KESTRA_UI_URL = os.getenv("KESTRA_UI_URL", "http://localhost:8080/ui").rstrip("/")
 KESTRA_NAMESPACE = os.getenv("KESTRA_NAMESPACE", "system.autopr")
 KESTRA_FLOW = os.getenv("KESTRA_FLOW", "autopr_main_flow")
 GITHUB_API_BASE = os.getenv("GITHUB_API_BASE", "https://api.github.com").rstrip("/")
@@ -27,6 +28,11 @@ DEFAULT_GITHUB_USERNAME = os.getenv("DEFAULT_GITHUB_USERNAME", "FiscalMindset")
 DEFAULT_GITHUB_REPO_FULL_NAME = os.getenv("DEFAULT_GITHUB_REPO_FULL_NAME", "FiscalMindset/autopr")
 DEFAULT_GITHUB_REPO_URL = os.getenv("DEFAULT_GITHUB_REPO_URL", "https://github.com/FiscalMindset/autopr.git")
 DEFAULT_AUTHOR = os.getenv("DEFAULT_AUTHOR", "Vicky Kumar")
+ALGSOCH_LINKEDIN_POST_URL = os.getenv(
+    "ALGSOCH_LINKEDIN_POST_URL",
+    "https://www.linkedin.com/posts/algsoch_offlineai-androiddev-ondeviceai-activity-7445842556317372416-5zgF",
+)
+ALGSOCH_LINKEDIN_PROFILE_URL = os.getenv("ALGSOCH_LINKEDIN_PROFILE_URL", "https://in.linkedin.com/in/algsoch")
 
 allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
 
@@ -85,6 +91,13 @@ class StyleAnalysisRequest(BaseModel):
         if isinstance(value, Sequence) and not isinstance(value, str) and not list(value):
             raise ValueError("sample_posts cannot be empty")
         return value
+
+
+class SocialStyleImportRequest(BaseModel):
+    source: str = Field(default="algsoch_linkedin")
+    profile_url: Optional[str] = None
+    post_url: Optional[str] = None
+    use_for_generation: bool = True
 
 
 class RepoRef(BaseModel):
@@ -544,6 +557,165 @@ def read_run_snapshot(run_id: str) -> Optional[Dict[str, Any]]:
     return load_json_file(RUNS_DIR / f"{run_id}.json")
 
 
+def kestra_execution_url(execution_id: str, flow_id: str = KESTRA_FLOW) -> str:
+    return f"{KESTRA_UI_URL}/executions/{KESTRA_NAMESPACE}/{flow_id}/{execution_id}"
+
+
+def kestra_flow_url(flow_id: str = KESTRA_FLOW) -> str:
+    return f"{KESTRA_UI_URL}/flows/edit/{KESTRA_NAMESPACE}/{flow_id}"
+
+
+def compact_value(value: Any, limit: int = 1200) -> Any:
+    if value is None or isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, str):
+        return value if len(value) <= limit else f"{value[:limit]}... [truncated]"
+    if isinstance(value, list):
+        return [compact_value(item, limit=limit // 2) for item in value[:8]]
+    if isinstance(value, dict):
+        return {key: compact_value(item, limit=limit // 2) for key, item in list(value.items())[:12]}
+    return str(value)
+
+
+def flatten_flow_tasks(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    flattened: List[Dict[str, Any]] = []
+    for task in tasks:
+        task_id = task.get("id")
+        task_type = task.get("type", "")
+        flattened.append(
+            {
+                "id": task_id,
+                "type": task_type,
+                "plugin": task_type.startswith("io.kestra.plugin."),
+                "subflow": task.get("flowId"),
+                "retry": task.get("retry"),
+                "condition": task.get("condition"),
+                "values": task.get("values"),
+            }
+        )
+        for branch_key in ("then", "else", "tasks"):
+            branch_tasks = task.get(branch_key)
+            if isinstance(branch_tasks, list):
+                flattened.extend(flatten_flow_tasks(branch_tasks))
+    return flattened
+
+
+def summarize_kestra_execution(execution: Dict[str, Any]) -> Dict[str, Any]:
+    task_runs = []
+    for task_run in execution.get("taskRunList", []):
+        state = task_run.get("state") or {}
+        task_runs.append(
+            {
+                "id": task_run.get("id"),
+                "task_id": task_run.get("taskId"),
+                "state": state.get("current"),
+                "value": task_run.get("value"),
+                "start_date": state.get("startDate"),
+                "end_date": state.get("endDate"),
+                "duration": state.get("duration"),
+                "outputs": compact_value(task_run.get("outputs")),
+            }
+        )
+
+    return {
+        "execution_id": execution.get("id"),
+        "flow_id": execution.get("flowId"),
+        "namespace": execution.get("namespace"),
+        "revision": execution.get("flowRevision"),
+        "state": (execution.get("state") or {}).get("current"),
+        "start_date": (execution.get("state") or {}).get("startDate"),
+        "end_date": (execution.get("state") or {}).get("endDate"),
+        "duration": (execution.get("state") or {}).get("duration"),
+        "inputs": compact_value(execution.get("inputs")),
+        "task_runs": task_runs,
+        "final_summary": extract_final_summary(execution),
+        "url": kestra_execution_url(str(execution.get("id")), str(execution.get("flowId") or KESTRA_FLOW)),
+    }
+
+
+def merge_final_summary(snapshot: Dict[str, Any], final_summary: Dict[str, Any]) -> Dict[str, Any]:
+    for key in [
+        "generated_posts",
+        "routing_decision",
+        "delivery_status",
+        "analysis",
+        "style_profile",
+        "execution_timeline",
+        "logs",
+        "errors",
+        "selected_repo",
+        "selected_commit",
+        "selected_pr",
+    ]:
+        value = final_summary.get(key)
+        if value not in (None, {}, []):
+            snapshot[key] = value
+
+    if final_summary.get("status"):
+        snapshot["status"] = final_summary["status"]
+    if final_summary.get("updated_at"):
+        snapshot["updated_at"] = final_summary["updated_at"]
+    return snapshot
+
+
+def extract_final_summary(execution: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    for task_run in execution.get("taskRunList", []):
+        if task_run.get("taskId") != "finalize":
+            continue
+        outputs = task_run.get("outputs") or {}
+        nested_outputs = outputs.get("outputs") or {}
+        final_summary = nested_outputs.get("final_summary")
+        return final_summary if isinstance(final_summary, dict) else None
+    return None
+
+
+def update_timeline_status(snapshot: Dict[str, Any], step: str, status: str) -> None:
+    timeline = snapshot.get("execution_timeline")
+    if not isinstance(timeline, list):
+        return
+    for item in timeline:
+        if isinstance(item, dict) and item.get("step") == step:
+            item["status"] = status
+            return
+
+
+async def sync_run_with_kestra(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    execution_id = snapshot.get("kestra_execution_id")
+    if not execution_id:
+        return snapshot
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{KESTRA_API_URL}/executions/{execution_id}")
+            response.raise_for_status()
+            execution = response.json()
+    except Exception as exc:
+        logger.warning("Could not sync Kestra execution %s: %s", execution_id, exc)
+        return snapshot
+
+    current_state = ((execution.get("state") or {}).get("current") or "").upper()
+    snapshot["kestra_execution_state"] = current_state or None
+    final_summary = extract_final_summary(execution)
+    if final_summary:
+        snapshot = merge_final_summary(snapshot, final_summary)
+
+    if current_state == "SUCCESS":
+        snapshot["status"] = "completed"
+        update_timeline_status(snapshot, "finalize", "complete")
+    elif current_state in {"FAILED", "KILLED", "CANCELLED"}:
+        snapshot["status"] = "failed"
+        errors = snapshot.get("errors") if isinstance(snapshot.get("errors"), list) else []
+        if not errors:
+            errors.append(f"Kestra execution ended in {current_state}.")
+        snapshot["errors"] = errors
+    elif current_state:
+        snapshot["status"] = "running"
+
+    snapshot["updated_at"] = utc_now_iso()
+    write_run_snapshot(str(snapshot.get("run_id") or snapshot.get("id")), snapshot)
+    return snapshot
+
+
 def summarize_logs(logs: List[Dict[str, Any]]) -> List[str]:
     return [f"{entry['timestamp']} [{entry['level']}] {entry['message']}" for entry in logs]
 
@@ -757,8 +929,65 @@ def config_defaults():
         "author": DEFAULT_AUTHOR,
         "kestra_namespace": KESTRA_NAMESPACE,
         "kestra_flow": KESTRA_FLOW,
+        "kestra_ui_url": KESTRA_UI_URL,
+        "kestra_flow_url": kestra_flow_url(),
         "mock_mode": AUTOPR_MOCK_MODE,
     }
+
+
+@app.get("/api/kestra/flow-definition")
+async def get_kestra_flow_definition(flow_id: str = KESTRA_FLOW):
+    url = f"{KESTRA_API_URL}/flows/{KESTRA_NAMESPACE}/{flow_id}"
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            response = await client.get(url)
+            response.raise_for_status()
+            flow = response.json()
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=503, detail={"message": "Kestra flow definition unavailable", "error": str(exc)}) from exc
+
+    tasks = flatten_flow_tasks(flow.get("tasks") or [])
+    plugin_tasks = [task for task in tasks if task.get("plugin")]
+    subflows = sorted({task["subflow"] for task in tasks if task.get("subflow")})
+    return {
+        "namespace": KESTRA_NAMESPACE,
+        "flow_id": flow_id,
+        "revision": flow.get("revision"),
+        "description": flow.get("description"),
+        "url": kestra_flow_url(flow_id),
+        "definition": flow,
+        "source_text": json.dumps(flow, indent=2),
+        "tasks": tasks,
+        "plugin_tasks": plugin_tasks,
+        "subflows": subflows,
+    }
+
+
+@app.get("/api/kestra/executions/{execution_id}")
+async def get_kestra_execution_details(execution_id: str):
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        try:
+            execution_response = await client.get(f"{KESTRA_API_URL}/executions/{execution_id}")
+            execution_response.raise_for_status()
+            execution = execution_response.json()
+
+            logs_response = await client.get(f"{KESTRA_API_URL}/logs/{execution_id}")
+            logs = logs_response.json() if logs_response.status_code < 400 else []
+        except httpx.HTTPError as exc:
+            raise HTTPException(status_code=503, detail={"message": "Kestra execution unavailable", "error": str(exc)}) from exc
+
+    summary = summarize_kestra_execution(execution)
+    summary["logs"] = [
+        {
+            "timestamp": log.get("timestamp"),
+            "level": log.get("level"),
+            "task_id": log.get("taskId"),
+            "message": log.get("message"),
+        }
+        for log in logs[-200:]
+        if isinstance(log, dict)
+    ]
+    return summary
 
 
 @app.post("/api/github/fetch-repos")
@@ -864,6 +1093,54 @@ async def analyze_linkedin_style(req: StyleAnalysisRequest):
     }
 
 
+@app.post("/api/social/import-algsoch-style")
+async def import_algsoch_style(req: SocialStyleImportRequest):
+    profile_url = req.profile_url or ALGSOCH_LINKEDIN_PROFILE_URL
+    post_url = req.post_url or ALGSOCH_LINKEDIN_POST_URL
+    analysis = {
+        "tone": "reflective",
+        "structure": "multi-paragraph",
+        "hook_style": "insight-led",
+        "technical_depth": "high",
+        "audience": "builders",
+        "cta_pattern": "soft-invite",
+        "hashtag_pattern": {
+            "count": 5,
+            "examples": ["#OfflineAI", "#AndroidDev", "#OnDeviceAI", "#AI", "#BuildInPublic"],
+            "style": "focused",
+        },
+        "sample_count": 2,
+        "summary": "Algsoch style: practical build-in-public posts, concrete technical bullets, privacy/offline AI emphasis, and builder-focused hashtags.",
+        "use_for_generation": req.use_for_generation,
+        "source": req.source,
+        "source_urls": [post_url, profile_url],
+        "style_rules": [
+            "Start with a concrete product/use-case observation instead of hype.",
+            "Explain why the implementation matters for real users.",
+            "Use short paragraphs and bullet-like benefit lists for technical details.",
+            "Prefer build-in-public clarity over marketing language.",
+            "Close with focused technical hashtags and community context.",
+        ],
+    }
+    run_id = make_run_id()
+    snapshot = {
+        "id": run_id,
+        "timestamp": utc_now_iso(),
+        "source": "algsoch_social_style_import",
+        "status": "completed",
+        "analysis": analysis,
+        "source_urls": analysis["source_urls"],
+        "use_for_generation": req.use_for_generation,
+    }
+    write_run_snapshot(run_id, snapshot)
+    return {
+        "run_id": run_id,
+        "analysis": analysis,
+        "source_urls": analysis["source_urls"],
+        "message": "Imported Algsoch public social style profile.",
+    }
+
+
 @app.post("/api/generate")
 async def generate_content(req: GenerateRequest):
     run_id = req.run_id or make_run_id()
@@ -895,23 +1172,25 @@ async def trigger_kestra(req: KestraTriggerRequest):
 
 
 @app.get("/api/runs")
-def list_runs():
+async def list_runs():
     ensure_storage()
     runs: List[Dict[str, Any]] = []
     for file_path in RUNS_DIR.glob("*.json"):
         data = load_json_file(file_path)
         if data:
+            if data.get("status") == "running" and data.get("kestra_execution_id"):
+                data = await sync_run_with_kestra(data)
             runs.append(data)
     runs.sort(key=lambda item: item.get("updated_at") or item.get("timestamp") or "", reverse=True)
     return {"runs": runs}
 
 
 @app.get("/api/runs/{run_id}")
-def get_run(run_id: str):
+async def get_run(run_id: str):
     data = read_run_snapshot(run_id)
     if not data:
         raise HTTPException(status_code=404, detail="Run not found")
-    return data
+    return await sync_run_with_kestra(data)
 
 
 @app.get("/api/posts")

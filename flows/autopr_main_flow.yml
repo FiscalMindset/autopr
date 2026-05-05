@@ -55,6 +55,44 @@ tasks:
     type: io.kestra.plugin.core.log.Log
     message: "AutoPR run {{ inputs.run_id }} started for {{ inputs.project }} from {{ inputs.input_source }}."
 
+  - id: plugin_import_github_repo
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://api.github.com/repos/{{ inputs.project }}"
+    method: GET
+    headers:
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"
+      User-Agent: "AutoPR-Engine-Kestra"
+    options:
+      readTimeout: PT20S
+      connectTimeout: PT10S
+      logLevel: INFO
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT3S
+
+  - id: plugin_import_latest_commits
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://api.github.com/repos/{{ inputs.project }}/commits?per_page=5"
+    method: GET
+    headers:
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"
+      User-Agent: "AutoPR-Engine-Kestra"
+    options:
+      readTimeout: PT20S
+      connectTimeout: PT10S
+      logLevel: INFO
+    retry:
+      type: constant
+      maxAttempt: 3
+      interval: PT3S
+
+  - id: log_plugin_import
+    type: io.kestra.plugin.core.log.Log
+    message: "Kestra HTTP plugin imported selected GitHub repo and latest commits for {{ inputs.project }}."
+
   - id: validate_input
     type: io.kestra.plugin.core.flow.Subflow
     namespace: system.autopr
@@ -170,7 +208,7 @@ tasks:
       raw_update: "{{ inputs.raw_update }}"
       analysis_json: "{{ outputs.analyze.outputs.analysis }}"
       github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
-      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+      style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
     wait: true
     retry:
       type: constant
@@ -183,7 +221,7 @@ tasks:
     flowId: route_distribution
     inputs:
       analysis_json: "{{ outputs.analyze.outputs.analysis }}"
-      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+      style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
       goal: "{{ inputs.goal }}"
       source: "{{ inputs.source }}"
     wait: true
@@ -218,7 +256,7 @@ tasks:
               routing_decision_json: "{{ outputs.route.outputs.routing_decision }}"
               github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
               analysis_json: "{{ outputs.analyze.outputs.analysis }}"
-              style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+              style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
             wait: true
             retry:
               type: constant
@@ -238,7 +276,7 @@ tasks:
       dry_run: "{{ inputs.dry_run }}"
       github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
       analysis_json: "{{ outputs.analyze.outputs.analysis }}"
-      style_profile_json: "{{ outputs.analyze_style.outputs.style_profile | default('{}') }}"
+      style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
       generated_posts_json: "{{ outputs.generate.outputs.generated_posts }}"
       routing_decision_json: "{{ outputs.route.outputs.routing_decision }}"
       delivery_status_json: "{}"

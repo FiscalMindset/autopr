@@ -50,6 +50,9 @@ Wait, since we mounted the files, we can also manually upload them in the Kestra
 ### 3. Demo Data
 See `DEMO_SCRIPT.md` for a sample payload.
 
+### 4. Real Credentials
+See `CREDENTIALS.md` for GitHub token setup and the live delivery adapter credentials needed for LinkedIn, X, Instagram, and WhatsApp.
+
 ## 💡 Why Kestra?
 Kestra is used here because it excels at:
 - Handling complex subflows and nested logic.
