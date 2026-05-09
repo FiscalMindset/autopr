@@ -33,6 +33,9 @@ inputs:
   - id: generated_posts_json
     type: STRING
     defaults: "{}"
+  - id: ai_generation_json
+    type: STRING
+    defaults: "{}"
   - id: routing_decision_json
     type: STRING
     defaults: "{}"
@@ -87,6 +90,7 @@ tasks:
       analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
       style_profile = parse_json(r'''{{ inputs.style_profile_json }}''', {})
       generated_posts = parse_json(r'''{{ inputs.generated_posts_json }}''', {})
+      ai_generation = parse_json(r'''{{ inputs.ai_generation_json }}''', {})
       routing_decision = parse_json(r'''{{ inputs.routing_decision_json }}''', {})
       delivery_status = parse_json(r'''{{ inputs.delivery_status_json }}''', {})
       logs = parse_json(r'''{{ inputs.logs_json }}''', [])
@@ -132,6 +136,7 @@ tasks:
           "selected_commit": github_context.get("selected_commit"),
           "selected_pr": github_context.get("selected_pr"),
           "generated_posts": generated_posts,
+          "ai_generation": ai_generation,
           "routing_decision": routing_decision,
           "delivery_status": delivery_status,
           "analysis": analysis,

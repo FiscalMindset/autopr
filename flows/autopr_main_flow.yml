@@ -40,6 +40,12 @@ inputs:
   - id: style_analysis_json
     type: STRING
     defaults: "{}"
+  - id: generated_posts_json
+    type: STRING
+    defaults: "{}"
+  - id: ai_generation_json
+    type: STRING
+    defaults: "{}"
   - id: use_style_profile
     type: STRING
     defaults: "false"
@@ -209,6 +215,7 @@ tasks:
       analysis_json: "{{ outputs.analyze.outputs.analysis }}"
       github_context_json: "{{ outputs.extract_context.outputs.github_context }}"
       style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
+      pre_generated_posts_json: "{{ inputs.generated_posts_json }}"
     wait: true
     retry:
       type: constant
@@ -278,6 +285,7 @@ tasks:
       analysis_json: "{{ outputs.analyze.outputs.analysis }}"
       style_profile_json: "{{ outputs.analyze_linkedin_style.outputs.style_profile | default(inputs.style_analysis_json) }}"
       generated_posts_json: "{{ outputs.generate.outputs.generated_posts }}"
+      ai_generation_json: "{{ outputs.generate.outputs.ai_generation | default(inputs.ai_generation_json) }}"
       routing_decision_json: "{{ outputs.route.outputs.routing_decision }}"
       delivery_status_json: "{}"
       logs_json: "[]"

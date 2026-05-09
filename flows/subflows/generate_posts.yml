@@ -15,6 +15,9 @@ inputs:
   - id: style_profile_json
     type: STRING
     defaults: "{}"
+  - id: pre_generated_posts_json
+    type: STRING
+    defaults: "{}"
 
 outputs:
   - id: generated_posts
@@ -38,8 +41,208 @@ outputs:
   - id: whatsapp_dm
     type: STRING
     value: "{{ outputs.gen_whatsapp_dm.vars.content }}"
+  - id: ai_generation
+    type: JSON
+    value: |
+      {
+        "provider": {{ outputs.ai_content_generation.vars.provider | json }},
+        "model": {{ outputs.ai_content_generation.vars.model | json }},
+        "fallback_used": {{ outputs.ai_content_generation.vars.fallback_used | json }},
+        "source": {{ outputs.ai_content_generation.vars.source | json }}
+      }
 
 tasks:
+  - id: ai_content_generation
+    type: io.kestra.plugin.scripts.python.Script
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+    warningOnStdErr: false
+    script: |
+      import json
+      import os
+      import re
+      import urllib.error
+      import urllib.request
+
+      PLATFORMS = ["linkedin", "x", "instagram", "whatsapp_dm"]
+
+      def parse_json(value, fallback):
+          try:
+              parsed = json.loads(value)
+              if isinstance(parsed, str):
+                  try:
+                      return json.loads(parsed)
+                  except Exception:
+                      return parsed
+              return parsed
+          except Exception:
+              return fallback
+
+      def extract_json_object(text):
+          try:
+              parsed = json.loads(text)
+              return parsed if isinstance(parsed, dict) else {}
+          except Exception:
+              pass
+          cleaned = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.IGNORECASE | re.MULTILINE).strip()
+          try:
+              parsed = json.loads(cleaned)
+              return parsed if isinstance(parsed, dict) else {}
+          except Exception:
+              pass
+          match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+          if not match:
+              return {}
+          try:
+              parsed = json.loads(match.group(0))
+              return parsed if isinstance(parsed, dict) else {}
+          except Exception:
+              return {}
+
+      def fallback_posts(raw, analysis, style, github_context):
+          keywords = analysis.get("keywords", [])
+          hashtags = " ".join(f"#{str(keyword).replace('-', '').title()}" for keyword in keywords[:3]) or "#BuildInPublic #Automation #Kestra"
+          hook = style.get("hook_line") or f"Shipping a meaningful update: {raw}"
+          linkedin = (
+              f"{hook}\n\n"
+              f"We now have a full orchestration path from {github_context.get('full_name', 'GitHub')} to content generation, platform routing, and delivery visibility.\n\n"
+              f"This release is designed for builders who care about traceability, distribution, and repeatable workflows.\n\n"
+              f"{hashtags}"
+          )
+          return {
+              "linkedin": linkedin,
+              "x": (f"{raw} -> routed by Kestra and prepared for public distribution. {analysis.get('summary', 'Traceable delivery pipeline live.')} #BuildInPublic #Automation")[:280],
+              "instagram": f"Behind the scenes update: {raw}.\n\nWe are turning repo activity into a visual, traceable content workflow.\n\n{style.get('summary', 'Built for teams shipping in public.')}",
+              "whatsapp_dm": f"Quick update: {raw}. The pipeline now traces from {github_context.get('full_name', 'GitHub')} through generation and delivery.",
+          }
+
+      def normalize_posts(data, fallback):
+          normalized = {}
+          for platform in PLATFORMS:
+              value = data.get(platform)
+              normalized[platform] = str(value).strip() if value else fallback[platform]
+          normalized["x"] = normalized["x"][:280]
+          return normalized
+
+      def request_json(url, payload, headers):
+          body = json.dumps(payload).encode("utf-8")
+          request = urllib.request.Request(url, data=body, headers=headers, method="POST")
+          with urllib.request.urlopen(request, timeout=45) as response:
+              return json.loads(response.read().decode("utf-8"))
+
+      def build_prompt(raw, analysis, style, github_context):
+          payload = {
+              "raw_update": raw,
+              "analysis": analysis,
+              "style_profile": style,
+              "github": github_context,
+          }
+          return (
+              "Create social public-relations content from developer activity. PR means public relations and distribution. "
+              "Return only valid JSON with exactly these string keys: linkedin, x, instagram, whatsapp_dm. "
+              "LinkedIn should be thoughtful and build-in-public. X must be 280 characters or fewer. "
+              "Instagram should be caption-ready. WhatsApp/DM should be direct and personal.\n\n"
+              f"Input:\n{json.dumps(payload, ensure_ascii=True)}"
+          )
+
+      raw = r'''{{ inputs.raw_update }}'''.strip()
+      analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
+      style = parse_json(r'''{{ inputs.style_profile_json }}''', {})
+      github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+      pre_generated = parse_json(r'''{{ inputs.pre_generated_posts_json }}''', {})
+      fallback = fallback_posts(raw, analysis, style, github_context)
+
+      if isinstance(pre_generated, dict) and all(pre_generated.get(platform) for platform in PLATFORMS):
+          posts = normalize_posts(pre_generated, fallback)
+          result = {
+              "generated_posts_json": json.dumps(posts),
+              "provider": "backend_preview",
+              "model": "backend_selected",
+              "fallback_used": "false",
+              "source": "backend_to_kestra",
+          }
+          print('::{"outputs": ' + json.dumps(result) + '}::')
+          raise SystemExit(0)
+
+      provider = os.getenv("AI_PROVIDER", "auto").strip().lower()
+      groq_key = os.getenv("GROQ_API_KEY")
+      groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+      gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+      gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+      prompt = build_prompt(raw, analysis, style, github_context)
+      errors = []
+
+      if provider in ("auto", "groq") and groq_key:
+          try:
+              body = request_json(
+                  "https://api.groq.com/openai/v1/chat/completions",
+                  {
+                      "model": groq_model,
+                      "temperature": 0.55,
+                      "response_format": {"type": "json_object"},
+                      "messages": [
+                          {"role": "system", "content": "Respond with JSON only."},
+                          {"role": "user", "content": prompt},
+                      ],
+                  },
+                  {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+              )
+              content = (((body.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+              parsed = extract_json_object(content)
+              if parsed:
+                  posts = normalize_posts(parsed, fallback)
+                  result = {
+                      "generated_posts_json": json.dumps(posts),
+                      "provider": "groq",
+                      "model": groq_model,
+                      "fallback_used": "false",
+                      "source": "kestra_env",
+                  }
+                  print('::{"outputs": ' + json.dumps(result) + '}::')
+                  raise SystemExit(0)
+              errors.append("groq returned non-json content")
+          except Exception as exc:
+              errors.append(f"groq:{exc.__class__.__name__}")
+
+      if provider in ("auto", "gemini", "google") and gemini_key:
+          try:
+              model_path = gemini_model if gemini_model.startswith("models/") else f"models/{gemini_model}"
+              body = request_json(
+                  f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent",
+                  {
+                      "contents": [{"role": "user", "parts": [{"text": "Respond with JSON only.\n\n" + prompt}]}],
+                      "generationConfig": {"temperature": 0.55, "responseMimeType": "application/json"},
+                  },
+                  {"x-goog-api-key": gemini_key, "Content-Type": "application/json"},
+              )
+              parts = (((body.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
+              content = "\n".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip()
+              parsed = extract_json_object(content)
+              if parsed:
+                  posts = normalize_posts(parsed, fallback)
+                  result = {
+                      "generated_posts_json": json.dumps(posts),
+                      "provider": "gemini",
+                      "model": gemini_model,
+                      "fallback_used": "false",
+                      "source": "kestra_env",
+                  }
+                  print('::{"outputs": ' + json.dumps(result) + '}::')
+                  raise SystemExit(0)
+              errors.append("gemini returned non-json content")
+          except Exception as exc:
+              errors.append(f"gemini:{exc.__class__.__name__}")
+
+      result = {
+          "generated_posts_json": json.dumps(fallback),
+          "provider": "deterministic_fallback",
+          "model": "local_rules",
+          "fallback_used": "true",
+          "source": "kestra_rules",
+          "errors": errors[-3:],
+      }
+      print('::{"outputs": ' + json.dumps(result) + '}::')
+
   - id: parallel_generation
     type: io.kestra.plugin.core.flow.Parallel
     tasks:
@@ -67,10 +270,11 @@ tasks:
           analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
           style = parse_json(r'''{{ inputs.style_profile_json }}''', {})
           github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
+          ai_posts = parse_json(r'''{{ outputs.ai_content_generation.vars.generated_posts_json | default("{}") }}''', {})
           hook = style.get("hook_line") or f"Shipping a meaningful update: {raw}"
           keywords = analysis.get("keywords", [])
           hashtag_suffix = " ".join(f"#{keyword.replace('-', '').title()}" for keyword in keywords[:3]) or "#BuildInPublic #Automation #Kestra"
-          content = (
+          content = ai_posts.get("linkedin") or (
               f"{hook}\n\n"
               f"We now have a full orchestration path from {github_context.get('full_name', 'GitHub')} to content generation, platform routing, and delivery visibility.\n\n"
               f"This release is designed for builders who care about traceability, distribution, and repeatable workflows.\n\n"
@@ -100,7 +304,8 @@ tasks:
 
           raw = r'''{{ inputs.raw_update }}'''.strip()
           analysis = parse_json(r'''{{ inputs.analysis_json }}''', {})
-          content = f"{raw} -> routed by Kestra, summarized by the AutoPR Engine. {analysis.get('summary', 'Traceable delivery pipeline live.')} #BuildInPublic #Automation"
+          ai_posts = parse_json(r'''{{ outputs.ai_content_generation.vars.generated_posts_json | default("{}") }}''', {})
+          content = ai_posts.get("x") or f"{raw} -> routed by Kestra, summarized by the AutoPR Engine. {analysis.get('summary', 'Traceable delivery pipeline live.')} #BuildInPublic #Automation"
           print('::{"outputs": {"content": ' + json.dumps(content[:280]) + '}}::')
 
       - id: gen_instagram
@@ -125,7 +330,8 @@ tasks:
 
           raw = r'''{{ inputs.raw_update }}'''.strip()
           style = parse_json(r'''{{ inputs.style_profile_json }}''', {})
-          content = (
+          ai_posts = parse_json(r'''{{ outputs.ai_content_generation.vars.generated_posts_json | default("{}") }}''', {})
+          content = ai_posts.get("instagram") or (
               f"Behind the scenes update: {raw}.\n\n"
               f"We are turning repo activity into a visual, traceable content workflow.\n\n"
               f"{style.get('summary', 'Built for teams shipping in public.')}"
@@ -154,5 +360,6 @@ tasks:
 
           raw = r'''{{ inputs.raw_update }}'''.strip()
           github_context = parse_json(r'''{{ inputs.github_context_json }}''', {})
-          content = f"Quick update: {raw}. The pipeline now traces from {github_context.get('full_name', 'GitHub')} through generation and delivery."
+          ai_posts = parse_json(r'''{{ outputs.ai_content_generation.vars.generated_posts_json | default("{}") }}''', {})
+          content = ai_posts.get("whatsapp_dm") or f"Quick update: {raw}. The pipeline now traces from {github_context.get('full_name', 'GitHub')} through generation and delivery."
           print('::{"outputs": {"content": ' + json.dumps(content) + '}}::')

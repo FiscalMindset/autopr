@@ -16,7 +16,6 @@ import {
   GitCommitVertical,
   GitPullRequest,
   Globe2,
-  ListChecks,
   Loader2,
   MessageCircle,
   MessageSquareText,
@@ -140,6 +139,16 @@ type GeneratedPosts = {
 
 type DeliveryStatus = Record<string, string>;
 
+type AiGeneration = {
+  provider?: string;
+  model?: string;
+  fallback_used?: boolean | string;
+  source?: string;
+  requested_provider?: string;
+  groq_configured?: boolean;
+  gemini_configured?: boolean;
+};
+
 type RunTimeline = {
   step: string;
   status: string;
@@ -165,6 +174,7 @@ type RunRecord = {
     requires_review?: boolean;
   };
   delivery_status?: DeliveryStatus;
+  ai_generation?: AiGeneration;
   analysis?: Record<string, unknown>;
   style_profile?: Record<string, unknown>;
   payload?: Record<string, unknown>;
@@ -194,6 +204,7 @@ type KestraTaskDefinition = {
   subflow?: string;
   condition?: string;
   values?: string;
+  retry?: Record<string, unknown>;
 };
 
 type KestraFlowDefinition = {
@@ -212,6 +223,8 @@ type KestraTaskRun = {
   task_id: string;
   state?: string;
   value?: string;
+  start_date?: string;
+  end_date?: string;
   duration?: string;
   outputs?: Record<string, unknown>;
 };
@@ -224,6 +237,8 @@ type KestraExecutionDetails = {
   state?: string;
   duration?: string;
   url?: string;
+  inputs?: Record<string, unknown>;
+  final_summary?: RunRecord;
   task_runs?: KestraTaskRun[];
   logs?: Array<{
     timestamp?: string;
@@ -232,6 +247,22 @@ type KestraExecutionDetails = {
     message?: string;
   }>;
 };
+
+type BackendDefaults = {
+  github_username?: string;
+  github_repo_full_name?: string;
+  github_repo_url?: string;
+  github_token_configured?: boolean;
+  kestra_ui_url?: string;
+  kestra_flow_url?: string;
+  ai_provider?: string;
+  groq_configured?: boolean;
+  groq_model?: string | null;
+  gemini_configured?: boolean;
+  gemini_model?: string | null;
+};
+
+type OrchestrationTab = 'topology' | 'plugins' | 'runs' | 'gantt' | 'metrics' | 'logs' | 'flow' | 'outputs';
 
 type ActionPhase = 'idle' | 'loading' | 'success' | 'error';
 
@@ -354,6 +385,23 @@ function executionStatusTone(state?: string) {
   return 'border-white/10 bg-white/5 text-slate-300';
 }
 
+function parseKestraDuration(value?: string) {
+  if (!value) return 0;
+  const match = value.match(/^P(?:T)?(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/);
+  if (!match) return 0;
+  const hours = Number(match[1] || 0);
+  const minutes = Number(match[2] || 0);
+  const seconds = Number(match[3] || 0);
+  return Math.round(((hours * 60 + minutes) * 60 + seconds) * 1000);
+}
+
+function formatDurationMs(ms: number) {
+  if (!ms) return 'pending';
+  if (ms < 1000) return `${ms} ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`;
+  return `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`;
+}
+
 function toRepoRef(repo: RepoItem | null | undefined): RepoRefPayload | undefined {
   if (!repo) return undefined;
   return {
@@ -415,7 +463,8 @@ function App() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [kestraExecution, setKestraExecution] = useState<KestraExecutionDetails | null>(null);
   const [flowDefinition, setFlowDefinition] = useState<KestraFlowDefinition | null>(null);
-  const [orchestrationTab, setOrchestrationTab] = useState<'topology' | 'logs' | 'flow' | 'outputs'>('topology');
+  const [backendDefaults, setBackendDefaults] = useState<BackendDefaults | null>(null);
+  const [orchestrationTab, setOrchestrationTab] = useState<OrchestrationTab>('topology');
   const [actions, setActions] = useState(actionDefaults);
   const [notices, setNotices] = useState<Notice[]>([]);
 
@@ -425,11 +474,14 @@ function App() {
   const currentGeneratedPosts = activePreview?.generated_posts;
   const currentRouting = activePreview?.routing_decision;
   const currentDelivery = activePreview?.delivery_status;
+  const currentAiGeneration = activePreview?.ai_generation;
   const currentLogs = activePreview?.logs || [];
   const currentTimeline = activePreview?.execution_timeline || [];
   const currentExecutionId = activePreview?.kestra_execution_id;
   const currentRunId = activePreview?.run_id || selectedRunId;
   const currentExecutionUrl = kestraExecution?.url || (currentExecutionId ? `${KESTRA_UI_URL.replace(/\/$/, '')}/executions/system.autopr/autopr_main_flow/${currentExecutionId}` : '');
+  const flowTopologyUrl = `${KESTRA_UI_URL.replace(/\/$/, '')}/flows/edit/system.autopr/autopr_main_flow/topology`;
+  const currentTopologyUrl = currentExecutionUrl ? `${currentExecutionUrl}/topology` : flowTopologyUrl;
 
   const metrics = useMemo(() => {
     const platformCount = currentRouting?.platforms?.length ?? 0;
@@ -454,6 +506,51 @@ function App() {
       words: countWords(content),
     }));
   }, [currentGeneratedPosts]);
+
+  const ganttRows = useMemo(() => {
+    const rows = (kestraExecution?.task_runs || []).map((task, index) => ({
+      task,
+      index,
+      durationMs: parseKestraDuration(task.duration),
+    }));
+    const maxDuration = Math.max(1, ...rows.map((row) => row.durationMs));
+    return rows.map((row) => ({
+      ...row,
+      percent: Math.max(6, Math.round((row.durationMs / maxDuration) * 100)),
+    }));
+  }, [kestraExecution?.task_runs]);
+
+  const orchestrationMetrics = useMemo(() => {
+    const taskRuns = kestraExecution?.task_runs || [];
+    const successCount = taskRuns.filter((task) => task.state === 'SUCCESS').length;
+    const failedCount = taskRuns.filter((task) => task.state === 'FAILED').length;
+    const runningCount = taskRuns.filter((task) => task.state === 'RUNNING').length;
+    return [
+      { label: 'Flow Tasks', value: String(flowDefinition?.tasks?.length || 0) },
+      { label: 'Plugin Tasks', value: String(flowDefinition?.plugin_tasks?.length || 0) },
+      { label: 'Subflows', value: String(flowDefinition?.subflows?.length || 0) },
+      { label: 'Task Runs', value: String(taskRuns.length) },
+      { label: 'Succeeded', value: String(successCount) },
+      { label: 'Running', value: String(runningCount) },
+      { label: 'Failed', value: String(failedCount) },
+      { label: 'Duration', value: kestraExecution?.duration || 'pending' },
+      { label: 'AI Provider', value: currentAiGeneration?.provider || backendDefaults?.ai_provider || 'auto' },
+      { label: 'Groq', value: backendDefaults?.groq_configured ? 'configured' : 'not set' },
+      { label: 'Gemini', value: backendDefaults?.gemini_configured ? 'configured' : 'not set' },
+      { label: 'Backend GitHub Token', value: backendDefaults?.github_token_configured ? 'configured' : 'not set' },
+    ];
+  }, [
+    backendDefaults?.ai_provider,
+    backendDefaults?.gemini_configured,
+    backendDefaults?.github_token_configured,
+    backendDefaults?.groq_configured,
+    currentAiGeneration?.provider,
+    flowDefinition?.plugin_tasks?.length,
+    flowDefinition?.subflows?.length,
+    flowDefinition?.tasks?.length,
+    kestraExecution?.duration,
+    kestraExecution?.task_runs,
+  ]);
 
   const setAction = (key: keyof typeof actionDefaults, next: ActionState) => {
     setActions((previous) => ({ ...previous, [key]: next }));
@@ -521,6 +618,15 @@ function App() {
     }
   };
 
+  const loadBackendDefaults = async () => {
+    try {
+      const response = await api.get('/config/defaults');
+      setBackendDefaults(response.data as BackendDefaults);
+    } catch (error) {
+      setAction('kestra', { phase: 'error', message: 'Could not load backend configuration.', detail: errorMessage(error) });
+    }
+  };
+
   const loadKestraExecution = async (executionId: string) => {
     try {
       const response = await api.get(`/kestra/executions/${executionId}`);
@@ -543,6 +649,17 @@ function App() {
     }
   };
 
+  const selectRepository = (repo: RepoItem) => {
+    setSelectedRepo(repo);
+    setProject(repo.full_name);
+    setCommits([]);
+    setPullRequests([]);
+    setSelectedCommit(null);
+    setSelectedPr(null);
+    setAction('commits', { phase: 'idle', message: `Ready to fetch commits for ${repo.full_name}.` });
+    setAction('prs', { phase: 'idle', message: `Optional GitHub pull request context is ready for ${repo.full_name}.` });
+  };
+
   useEffect(() => {
     const refresh = () => {
       void fetchRuns();
@@ -560,6 +677,7 @@ function App() {
 
   useEffect(() => {
     const firstLoad = window.setTimeout(() => {
+      void loadBackendDefaults();
       void loadFlowDefinition();
     }, 0);
     return () => window.clearTimeout(firstLoad);
@@ -584,13 +702,19 @@ function App() {
         pinned_repo: DEFAULT_GITHUB_REPO,
       });
       const items = response.data.items || [];
+      const nextRepo =
+        items.find((repo: RepoItem) => repo.full_name === selectedRepo?.full_name) ??
+        items.find((repo: RepoItem) => repo.full_name === project) ??
+        items.find((repo: RepoItem) => repo.full_name === DEFAULT_GITHUB_REPO) ??
+        items[0] ??
+        null;
       setRepos(items);
-      setSelectedRepo((previous) => previous ?? items.find((repo: RepoItem) => repo.full_name === DEFAULT_GITHUB_REPO) ?? items[0] ?? null);
-      setProject(items.find((repo: RepoItem) => repo.full_name === DEFAULT_GITHUB_REPO)?.full_name || items[0]?.full_name || project);
+      setSelectedRepo(nextRepo);
+      setProject(nextRepo?.full_name || project);
       setAction('repos', {
         phase: 'success',
         message: response.data.message || `Loaded ${items.length || 0} repositories.`,
-        detail: response.data.auth_mode ? `Auth mode: ${response.data.auth_mode}` : undefined,
+        detail: response.data.auth_mode ? `Auth mode: ${response.data.auth_mode}. Active repo: ${nextRepo?.full_name || 'none'}` : `Active repo: ${nextRepo?.full_name || 'none'}`,
       });
       if (!options.silent) {
         pushNotice('success', 'Repositories loaded', response.data.message || `Loaded ${items.length} repositories.`);
@@ -605,6 +729,15 @@ function App() {
       return [];
     }
   };
+
+  useEffect(() => {
+    const initialRepoLoad = window.setTimeout(() => {
+      void fetchRepos({ username: githubUsername || DEFAULT_GITHUB_USERNAME, silent: true });
+    }, 250);
+    return () => window.clearTimeout(initialRepoLoad);
+    // Auto-populates the active repo selector so one-click can target any loaded repository.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchCommits = async (repoOverride?: RepoItem, options: { silent?: boolean; throwOnError?: boolean } = {}) => {
     const repo = repoOverride ?? selectedRepo;
@@ -626,7 +759,11 @@ function App() {
       if (items[0]?.message) {
         setRawUpdate(items[0].message);
       }
-      setAction('commits', { phase: 'success', message: response.data.message || `Loaded ${items.length || 0} commits.` });
+      setAction('commits', {
+        phase: 'success',
+        message: response.data.message || `Loaded ${items.length || 0} commits.`,
+        detail: response.data.auth_mode ? `Auth mode: ${response.data.auth_mode}` : undefined,
+      });
       if (!options.silent) {
         pushNotice('success', 'Commits loaded', response.data.message || `Loaded ${items.length} commits.`);
       }
@@ -661,7 +798,11 @@ function App() {
       if (!rawUpdate.trim() && items[0]?.title) {
         setRawUpdate(items[0].title);
       }
-      setAction('prs', { phase: 'success', message: response.data.message || `Loaded ${items.length || 0} GitHub pull requests.` });
+      setAction('prs', {
+        phase: 'success',
+        message: response.data.message || `Loaded ${items.length || 0} GitHub pull requests.`,
+        detail: response.data.auth_mode ? `Auth mode: ${response.data.auth_mode}` : undefined,
+      });
       if (!options.silent) {
         pushNotice('success', 'GitHub pull requests loaded', response.data.message || `Loaded ${items.length} pull requests as optional context.`);
       }
@@ -841,8 +982,9 @@ function App() {
     }
   };
 
-  const runAutoPR = async () => {
+  const runAutoPR = async (repoOverride?: RepoItem) => {
     const requestedDryRun = dryRun;
+    const requestedRepo = repoOverride ?? selectedRepo;
     if (!requestedDryRun && !deliveryWebhookUrl.trim()) {
       const message = 'Live mode needs a delivery adapter webhook URL or platform OAuth bridge. I will not silently dry-run a live request.';
       setAction('auto', { phase: 'error', message: 'Live delivery is not configured.', detail: message });
@@ -856,11 +998,11 @@ function App() {
       message: 'Running the full AutoPR pipeline.',
       detail: `Selected repo -> Kestra plugin import -> Algsoch social style -> ${requestedDryRun ? 'dry run' : 'live adapter'}.`,
     });
-    pushNotice('info', 'AutoPR started', `Fetching ${selectedRepo?.full_name || DEFAULT_GITHUB_REPO} and preparing an orchestrated ${requestedDryRun ? 'dry run' : 'live adapter run'}.`);
+    pushNotice('info', 'AutoPR started', `Fetching ${requestedRepo?.full_name || DEFAULT_GITHUB_REPO} and preparing an orchestrated ${requestedDryRun ? 'dry run' : 'live adapter run'}.`);
 
     try {
       let loadedRepos = repos;
-      let repo = selectedRepo;
+      let repo = requestedRepo;
       if (!repo) {
         loadedRepos = await fetchRepos({ username: githubUsername || DEFAULT_GITHUB_USERNAME, silent: true, throwOnError: true });
         repo = loadedRepos.find((item) => item.full_name === project) ?? loadedRepos.find((item) => item.full_name === DEFAULT_GITHUB_REPO) ?? loadedRepos[0] ?? null;
@@ -960,6 +1102,274 @@ function App() {
   }, [activePreview?.status, currentExecutionId]);
 
   const selectedPlatformContent = currentGeneratedPosts?.[selectedPlatform] || '';
+  const orchestrationTabs: Array<{ id: OrchestrationTab; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+    { id: 'topology', label: 'Topology', icon: Workflow },
+    { id: 'plugins', label: 'Plugins', icon: Bot },
+    { id: 'runs', label: 'Task Runs', icon: GitBranch },
+    { id: 'gantt', label: 'Gantt', icon: Clock3 },
+    { id: 'metrics', label: 'Metrics', icon: BarChart3 },
+    { id: 'logs', label: 'Logs', icon: Activity },
+    { id: 'flow', label: 'Flow', icon: FileCode2 },
+    { id: 'outputs', label: 'Outputs', icon: MessageSquareText },
+  ];
+
+  const orchestrationConsole = (
+    <section className="rounded-[28px] border border-white/10 bg-white/5 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl md:p-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-semibold text-white">Kestra Orchestration Console</h2>
+            <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(kestraExecution?.state || activePreview?.status)}`}>
+              {kestraExecution?.state || activePreview?.status || 'not loaded'}
+            </span>
+          </div>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+            Topology, Kestra plugin usage, task runs, Gantt timing, metrics, logs, flow text, and output handoff state for the selected execution.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={currentExecutionUrl || KESTRA_UI_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/20"
+          >
+            <ExternalLink size={15} /> Execution UI
+          </a>
+          <a
+            href={currentTopologyUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/20"
+          >
+            <Workflow size={15} /> Topology UI
+          </a>
+          <a
+            href={flowDefinition?.url || `${KESTRA_UI_URL.replace(/\/$/, '')}/flows/edit/system.autopr/autopr_main_flow`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 transition hover:border-cyan-400/40"
+          >
+            <FileCode2 size={15} /> Flow UI
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              void loadBackendDefaults();
+              void loadFlowDefinition();
+              if (currentExecutionId) void loadKestraExecution(currentExecutionId);
+            }}
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-200 transition hover:border-cyan-400/40"
+          >
+            <RefreshCw size={15} /> Sync
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <SummaryBadge label="Execution" value={currentExecutionId || 'pending'} />
+        <SummaryBadge label="Flow Revision" value={String(kestraExecution?.revision || flowDefinition?.revision || 'pending')} />
+        <SummaryBadge label="Plugins" value={String(flowDefinition?.plugin_tasks?.length || 0)} />
+        <SummaryBadge label="Task Runs" value={String(kestraExecution?.task_runs?.length || 0)} />
+        <SummaryBadge label="AI Provider" value={currentAiGeneration?.provider || backendDefaults?.ai_provider || 'auto'} />
+        <SummaryBadge label="GitHub Token" value={backendDefaults?.github_token_configured ? 'backend .env' : 'not set'} />
+      </div>
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        {orchestrationTabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setOrchestrationTab(tab.id)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm transition ${orchestrationTab === tab.id ? 'bg-cyan-400 text-slate-950' : 'border border-white/10 bg-slate-950/70 text-slate-200 hover:border-cyan-400/40'}`}
+            >
+              <Icon size={15} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {orchestrationTab === 'topology' && (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+          <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-white">
+                {currentExecutionId ? 'Live Kestra Execution Topology' : 'Kestra Flow Topology'}
+              </div>
+              <div className="mt-1 break-all font-mono text-xs text-cyan-200">{currentTopologyUrl}</div>
+            </div>
+            <a
+              href={currentTopologyUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/20"
+            >
+              <ExternalLink size={15} /> Open Topology
+            </a>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+            <iframe
+              key={currentTopologyUrl}
+              src={currentTopologyUrl}
+              title="Kestra topology"
+              className="h-[620px] w-full bg-white"
+            />
+          </div>
+        </div>
+      )}
+
+      {orchestrationTab === 'plugins' && (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {(flowDefinition?.plugin_tasks || []).map((task) => (
+            <div key={`${task.id}-${task.type}`} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-white">{task.id}</div>
+                  <div className="mt-1 break-words font-mono text-xs text-cyan-200">{task.type}</div>
+                </div>
+                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[11px] text-cyan-100">plugin</span>
+              </div>
+              {task.subflow && <div className="mt-2 text-xs text-slate-400">Subflow: {task.subflow}</div>}
+              {task.retry && <div className="mt-2 text-xs text-slate-500">Retries configured</div>}
+            </div>
+          ))}
+          {!flowDefinition?.plugin_tasks?.length && <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Flow definition not loaded yet.</div>}
+        </div>
+      )}
+
+      {orchestrationTab === 'runs' && (
+        <div className="mt-4 max-h-[460px] space-y-2 overflow-auto pr-1">
+          {(kestraExecution?.task_runs || []).map((task) => (
+            <div key={task.id || `${task.task_id}-${task.value || ''}`} className="grid gap-3 rounded-2xl border border-white/10 bg-slate-950/60 p-4 md:grid-cols-[1fr_auto]">
+              <div className="min-w-0">
+                <div className="break-words text-sm font-medium text-white">{task.task_id}{task.value ? ` / ${task.value}` : ''}</div>
+                <div className="mt-1 text-xs text-slate-500">{formatTime(task.start_date)}{' -> '}{task.end_date ? formatTime(task.end_date) : 'running'} • {task.duration || 'duration pending'}</div>
+              </div>
+              <span className={`h-fit rounded-full border px-3 py-1 text-xs ${executionStatusTone(task.state)}`}>{task.state || 'pending'}</span>
+            </div>
+          ))}
+          {!kestraExecution?.task_runs?.length && <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Start or select a run to load Kestra task runs.</div>}
+        </div>
+      )}
+
+      {orchestrationTab === 'gantt' && (
+        <div className="mt-4 max-h-[460px] space-y-3 overflow-auto rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+          {ganttRows.length ? ganttRows.map((row) => (
+            <div key={row.task.id || `${row.task.task_id}-${row.index}`} className="grid gap-2 md:grid-cols-[220px_1fr_90px] md:items-center">
+              <div className="min-w-0">
+                <div className="truncate text-xs font-medium text-white">{row.task.task_id}</div>
+                <div className="text-[11px] text-slate-500">{row.task.state || 'pending'}</div>
+              </div>
+              <div className="h-7 overflow-hidden rounded-full border border-white/10 bg-black/30">
+                <div className={`h-full rounded-full ${row.task.state === 'FAILED' ? 'bg-rose-400' : row.task.state === 'RUNNING' ? 'bg-amber-300' : 'bg-cyan-400'}`} style={{ width: `${row.percent}%` }} />
+              </div>
+              <div className="text-right font-mono text-xs text-slate-400">{formatDurationMs(row.durationMs)}</div>
+            </div>
+          )) : (
+            <div className="text-sm text-slate-500">No execution timing loaded yet.</div>
+          )}
+        </div>
+      )}
+
+      {orchestrationTab === 'metrics' && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+          {orchestrationMetrics.map((metric) => (
+            <SummaryBadge key={metric.label} label={metric.label} value={metric.value} />
+          ))}
+          <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:col-span-2 xl:col-span-3">
+            <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Output Tags</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {Object.entries(currentDelivery || {}).length ? Object.entries(currentDelivery || {}).map(([platform, status]) => (
+                <span key={platform} className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(status)}`}>
+                  {platform}: {status}
+                </span>
+              )) : <span className="text-sm text-slate-500">No output tags yet.</span>}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 sm:col-span-2 xl:col-span-3">
+            <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Configured Models</div>
+            <div className="mt-3 grid gap-2 text-sm text-slate-300">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Groq</span>
+                <span className="text-right text-slate-100">{backendDefaults?.groq_configured ? backendDefaults?.groq_model || 'configured' : 'not set'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-500">Gemini</span>
+                <span className="text-right text-slate-100">{backendDefaults?.gemini_configured ? backendDefaults?.gemini_model || 'configured' : 'not set'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {orchestrationTab === 'logs' && (
+        <div className="mt-4 max-h-[460px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+          {(kestraExecution?.logs || []).length ? (
+            kestraExecution?.logs?.map((log, index) => (
+              <div key={`${log.timestamp}-${index}`} className="mb-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 font-mono text-xs leading-5 text-slate-300">
+                <span className="text-slate-500">{formatTime(log.timestamp)}</span> <span className="text-cyan-200">{log.level}</span> <span className="text-amber-200">{log.task_id || '-'}</span> {log.message}
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-slate-500">No Kestra logs loaded yet. Use Sync after starting a run.</div>
+          )}
+        </div>
+      )}
+
+      {orchestrationTab === 'flow' && (
+        <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-300">
+            <span>{flowDefinition?.namespace || 'system.autopr'} / {flowDefinition?.flow_id || 'autopr_main_flow'}</span>
+            <button
+              type="button"
+              onClick={() => void copyText('Kestra flow definition', flowDefinition?.source_text)}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-cyan-400/40"
+            >
+              <Copy size={14} /> Copy Flow
+            </button>
+          </div>
+          <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-slate-200">
+{flowDefinition?.source_text || 'Flow definition not loaded yet.'}
+          </pre>
+        </div>
+      )}
+
+      {orchestrationTab === 'outputs' && (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {currentGeneratedPosts ? Object.entries(currentGeneratedPosts).map(([platform, content]) => {
+            const status = currentDelivery?.[platform] || 'draft_generated';
+            return (
+              <div key={platform} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-white">{platformMeta[platform as keyof typeof platformMeta]?.label || platform}</div>
+                    <div className="mt-1 text-xs text-slate-400">{deliveryMeaning(status)}</div>
+                  </div>
+                  <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(status)}`}>{status}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyText(`${platform} output`, content)}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-400/20"
+                >
+                  <Copy size={14} /> Copy Equivalent Post
+                </button>
+                <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/30 p-3 text-xs leading-5 text-slate-100">
+{content}
+                </pre>
+              </div>
+            );
+          }) : (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Generated platform outputs will appear here.</div>
+          )}
+        </div>
+      )}
+    </section>
+  );
 
   return (
     <div className="min-h-screen bg-[#07111f] text-slate-100">
@@ -1014,23 +1424,39 @@ function App() {
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:w-[420px] xl:grid-cols-1">
+              <label className="rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3">
+                <span className="text-xs uppercase tracking-[0.3em] text-slate-400">Active Repo</span>
+                <select
+                  value={selectedRepo?.full_name || ''}
+                  onChange={(event) => {
+                    const repo = repos.find((item) => item.full_name === event.target.value);
+                    if (repo) selectRepository(repo);
+                  }}
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-400/40"
+                >
+                  {!selectedRepo && <option value="">Fetch repos first</option>}
+                  {repos.map((repo) => (
+                    <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>
+                  ))}
+                </select>
+              </label>
               <button onClick={() => void runAutoPR()} className="group rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-left transition hover:border-emerald-300/60 hover:bg-emerald-400/20">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs uppercase tracking-[0.3em] text-emerald-200">One Click</div>
                     <div className="mt-1 flex items-center gap-2 text-sm font-medium text-white">
-                      {actions.auto.phase === 'loading' ? <Loader2 size={16} className="animate-spin text-emerald-200" /> : <Sparkles size={16} className="text-emerald-200" />} Run AutoPR
+                      {actions.auto.phase === 'loading' ? <Loader2 size={16} className="animate-spin text-emerald-200" /> : <Sparkles size={16} className="text-emerald-200" />} Run Selected Repo
                     </div>
                   </div>
                   <ArrowRight size={16} className="text-emerald-200 transition group-hover:translate-x-1" />
                 </div>
               </button>
-              <a href={KESTRA_UI_URL} target="_blank" rel="noreferrer" className="group rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 transition hover:border-cyan-400/40 hover:bg-slate-950">
+              <a href={currentTopologyUrl} target="_blank" rel="noreferrer" className="group rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 transition hover:border-cyan-400/40 hover:bg-slate-950">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs uppercase tracking-[0.3em] text-slate-400">Topology</div>
                     <div className="mt-1 flex items-center gap-2 text-sm font-medium text-white">
-                      <Workflow size={16} className="text-cyan-300" /> Open Kestra UI
+                      <Workflow size={16} className="text-cyan-300" /> Open Kestra Topology
                     </div>
                   </div>
                   <ArrowRight size={16} className="text-slate-500 transition group-hover:translate-x-1 group-hover:text-cyan-300" />
@@ -1046,6 +1472,8 @@ function App() {
             </div>
           </div>
         </motion.header>
+
+        {orchestrationConsole}
 
         <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           {metrics.map((metric, index) => (
@@ -1094,7 +1522,7 @@ function App() {
                     onChange={(event) => setGitHubToken(event.target.value)}
                     type="password"
                     className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-400/40"
-                    placeholder="ghp_..."
+                    placeholder={backendDefaults?.github_token_configured ? 'Using backend .env token if empty' : 'ghp_...'}
                   />
                 </label>
                 <label className="space-y-2 text-sm">
@@ -1132,18 +1560,16 @@ function App() {
                       repos.map((repo) => {
                         const isSelected = selectedRepo?.full_name === repo.full_name;
                         return (
-                          <button
+                          <div
                             key={repo.full_name}
-                            type="button"
-                            onClick={() => {
-                              setSelectedRepo(repo);
-                              setProject(repo.full_name);
-                              setCommits([]);
-                              setPullRequests([]);
-                              setSelectedCommit(null);
-                              setSelectedPr(null);
-                              setAction('commits', { phase: 'idle', message: `Ready to fetch commits for ${repo.full_name}.` });
-                              setAction('prs', { phase: 'idle', message: `Optional GitHub pull request context is ready for ${repo.full_name}.` });
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => selectRepository(repo)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                selectRepository(repo);
+                              }
                             }}
                             className={`rounded-2xl border p-4 text-left transition ${isSelected ? 'border-cyan-400/50 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.2)]' : 'border-white/10 bg-slate-950/60 hover:border-white/20 hover:bg-slate-950'}`}
                           >
@@ -1162,7 +1588,31 @@ function App() {
                               <span className="rounded-full border border-white/10 px-2 py-1">★ {repo.stargazers_count ?? 0}</span>
                               <span className="rounded-full border border-white/10 px-2 py-1">Issues {repo.open_issues_count ?? 0}</span>
                             </div>
-                          </button>
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  selectRepository(repo);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-cyan-400/40"
+                              >
+                                <CheckCircle2 size={14} /> Select
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  selectRepository(repo);
+                                  void runAutoPR(repo);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-medium text-emerald-100 transition hover:bg-emerald-400/20"
+                              >
+                                {actions.auto.phase === 'loading' && isSelected ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                Run this repo
+                              </button>
+                            </div>
+                          </div>
                         );
                       })
                     )}
@@ -1440,6 +1890,14 @@ function App() {
                       <ExternalLink size={15} /> Execution
                     </a>
                     <a
+                      href={currentTopologyUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-400/20"
+                    >
+                      <Workflow size={15} /> Topology
+                    </a>
+                    <a
                       href={flowDefinition?.url || `${KESTRA_UI_URL.replace(/\/$/, '')}/flows/edit/system.autopr/autopr_main_flow`}
                       target="_blank"
                       rel="noreferrer"
@@ -1639,128 +2097,6 @@ function App() {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-6">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Kestra Orchestration Console</h2>
-                  <p className="text-sm text-slate-400">Frontend mirror of the Kestra topology, plugin tasks, logs, flow definition, and output handoff state.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(['topology', 'logs', 'flow', 'outputs'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setOrchestrationTab(tab)}
-                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm capitalize transition ${orchestrationTab === tab ? 'bg-cyan-400 text-slate-950' : 'border border-white/10 bg-slate-950/70 text-slate-200 hover:border-cyan-400/40'}`}
-                    >
-                      {tab === 'topology' ? <ListChecks size={15} /> : tab === 'logs' ? <Activity size={15} /> : tab === 'flow' ? <FileCode2 size={15} /> : <MessageSquareText size={15} />}
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {orchestrationTab === 'topology' && (
-                <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                    <div className="flex items-center justify-between text-sm text-slate-300">
-                      <span className="flex items-center gap-2"><Workflow size={16} className="text-cyan-300" /> Kestra Plugins Used</span>
-                      <span className="text-xs text-slate-500">{flowDefinition?.plugin_tasks?.length || 0} plugin tasks</span>
-                    </div>
-                    <div className="mt-3 max-h-80 space-y-2 overflow-auto pr-1">
-                      {(flowDefinition?.plugin_tasks || []).map((task) => (
-                        <div key={`${task.id}-${task.type}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
-                          <div className="text-sm font-medium text-white">{task.id}</div>
-                          <div className="mt-1 break-words font-mono text-xs text-cyan-200">{task.type}</div>
-                          {task.subflow && <div className="mt-2 text-xs text-slate-400">Subflow: {task.subflow}</div>}
-                        </div>
-                      ))}
-                      {!flowDefinition?.plugin_tasks?.length && <div className="text-sm text-slate-500">Flow definition not loaded yet.</div>}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                    <div className="flex items-center justify-between text-sm text-slate-300">
-                      <span className="flex items-center gap-2"><GitBranch size={16} className="text-fuchsia-300" /> Execution Task Runs</span>
-                      <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(kestraExecution?.state)}`}>{kestraExecution?.state || 'not loaded'}</span>
-                    </div>
-                    <div className="mt-3 max-h-80 space-y-2 overflow-auto pr-1">
-                      {(kestraExecution?.task_runs || []).map((task) => (
-                        <div key={task.id || `${task.task_id}-${task.value || ''}`} className="grid gap-3 rounded-xl border border-white/10 bg-white/5 p-3 md:grid-cols-[1fr_auto]">
-                          <div className="min-w-0">
-                            <div className="break-words text-sm font-medium text-white">{task.task_id}{task.value ? ` / ${task.value}` : ''}</div>
-                            <div className="mt-1 text-xs text-slate-500">{task.duration || 'duration pending'}</div>
-                          </div>
-                          <span className={`h-fit rounded-full border px-3 py-1 text-xs ${executionStatusTone(task.state)}`}>{task.state || 'pending'}</span>
-                        </div>
-                      ))}
-                      {!kestraExecution?.task_runs?.length && <div className="text-sm text-slate-500">Start or select a run to load execution tasks.</div>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {orchestrationTab === 'logs' && (
-                <div className="mt-4 max-h-[420px] overflow-auto rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                  {(kestraExecution?.logs || []).length ? (
-                    kestraExecution?.logs?.map((log, index) => (
-                      <div key={`${log.timestamp}-${index}`} className="mb-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2 font-mono text-xs leading-5 text-slate-300">
-                        <span className="text-slate-500">{formatTime(log.timestamp)}</span> <span className="text-cyan-200">{log.level}</span> <span className="text-amber-200">{log.task_id || '-'}</span> {log.message}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-slate-500">No Kestra logs loaded yet. Use Sync after starting a run.</div>
-                  )}
-                </div>
-              )}
-
-              {orchestrationTab === 'flow' && (
-                <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-300">
-                    <span>{flowDefinition?.namespace || 'system.autopr'} / {flowDefinition?.flow_id || 'autopr_main_flow'}</span>
-                    <button
-                      type="button"
-                      onClick={() => void copyText('Kestra flow definition', flowDefinition?.source_text)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 transition hover:border-cyan-400/40"
-                    >
-                      <Copy size={14} /> Copy Flow
-                    </button>
-                  </div>
-                  <pre className="max-h-[460px] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-slate-200">
-{flowDefinition?.source_text || 'Flow definition not loaded yet.'}
-                  </pre>
-                </div>
-              )}
-
-              {orchestrationTab === 'outputs' && (
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {currentGeneratedPosts ? Object.entries(currentGeneratedPosts).map(([platform, content]) => {
-                    const status = currentDelivery?.[platform] || 'draft_generated';
-                    return (
-                      <div key={platform} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-sm font-medium text-white">{platformMeta[platform as keyof typeof platformMeta]?.label || platform}</div>
-                            <div className="mt-1 text-xs text-slate-400">{deliveryMeaning(status)}</div>
-                          </div>
-                          <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(status)}`}>{status}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => void copyText(`${platform} output`, content)}
-                          className="mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-400/20"
-                        >
-                          <Copy size={14} /> Copy Equivalent Post
-                        </button>
-                      </div>
-                    );
-                  }) : (
-                    <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Generated platform outputs will appear here.</div>
-                  )}
-                </div>
-              )}
-            </div>
-
             <div className="grid gap-6 xl:grid-cols-2">
               <div className="rounded-[28px] border border-white/10 bg-white/5 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-xl md:p-6">
                 <div className="flex items-center justify-between gap-3">
@@ -1831,7 +2167,9 @@ function App() {
                           </div>
                           <span className="text-xs text-slate-500">{formatTime(post.timestamp)}</span>
                         </div>
-                        <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-slate-300">{post.content}</p>
+                        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-3 text-sm leading-6 text-slate-300">
+{post.content}
+                        </pre>
                         <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
                           <span>{post.status} • {deliveryMeaning(post.status)}</span>
                           <span>{post.dry_run ? 'dry_run=true' : 'dry_run=false'}</span>

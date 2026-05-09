@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -9,7 +10,11 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv()
 
 logger = logging.getLogger("autopr.backend")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s")
@@ -25,9 +30,15 @@ KESTRA_FLOW = os.getenv("KESTRA_FLOW", "autopr_main_flow")
 GITHUB_API_BASE = os.getenv("GITHUB_API_BASE", "https://api.github.com").rstrip("/")
 AUTOPR_MOCK_MODE = os.getenv("AUTOPR_MOCK_MODE", "false").lower() == "true"
 DEFAULT_GITHUB_USERNAME = os.getenv("DEFAULT_GITHUB_USERNAME", "FiscalMindset")
+DEFAULT_GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN") or os.getenv("GITHUB_PAT")
 DEFAULT_GITHUB_REPO_FULL_NAME = os.getenv("DEFAULT_GITHUB_REPO_FULL_NAME", "FiscalMindset/autopr")
 DEFAULT_GITHUB_REPO_URL = os.getenv("DEFAULT_GITHUB_REPO_URL", "https://github.com/FiscalMindset/autopr.git")
 DEFAULT_AUTHOR = os.getenv("DEFAULT_AUTHOR", "Vicky Kumar")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "auto").strip().lower()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 ALGSOCH_LINKEDIN_POST_URL = os.getenv(
     "ALGSOCH_LINKEDIN_POST_URL",
     "https://www.linkedin.com/posts/algsoch_offlineai-androiddev-ondeviceai-activity-7445842556317372416-5zgF",
@@ -157,6 +168,7 @@ class GenerateRequest(BaseModel):
     use_style_profile: bool = False
     delivery_webhook_url: Optional[str] = None
     input_source: Optional[str] = None
+    generated_posts: Optional[Dict[str, str]] = None
 
 
 class KestraTriggerRequest(GenerateRequest):
@@ -220,6 +232,28 @@ def github_headers(token: Optional[str]) -> Dict[str, str]:
     if token:
         headers["Authorization"] = f"Bearer {token.strip()}"
     return headers
+
+
+SENSITIVE_KEY_PARTS = ("token", "secret", "api_key", "apikey", "authorization", "password", "oauth")
+
+
+def mask_sensitive(value: Any) -> Any:
+    if isinstance(value, dict):
+        masked: Dict[str, Any] = {}
+        for key, item in value.items():
+            key_text = str(key).lower()
+            if any(part in key_text for part in SENSITIVE_KEY_PARTS):
+                masked[key] = "***configured***" if item else ""
+            else:
+                masked[key] = mask_sensitive(item)
+        return masked
+    if isinstance(value, list):
+        return [mask_sensitive(item) for item in value]
+    return value
+
+
+def effective_github_token(token: Optional[str] = None) -> Optional[str]:
+    return (token or DEFAULT_GITHUB_TOKEN or "").strip() or None
 
 
 def mock_repositories(username: str) -> List[Dict[str, Any]]:
@@ -484,6 +518,177 @@ def build_post_variants(context: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
+def ai_generation_prompt(context: Dict[str, Any]) -> str:
+    prompt_payload = {
+        "raw_update": context.get("raw_update"),
+        "project": context.get("project"),
+        "author": context.get("author"),
+        "goal": context.get("goal"),
+        "github": context.get("github"),
+        "analysis": context.get("analysis"),
+        "style_profile": context.get("style_profile"),
+    }
+    return (
+        "Create social public-relations content from developer activity. "
+        "Here PR means public relations and distribution, not only a GitHub pull request. "
+        "Return only valid JSON with exactly these string keys: linkedin, x, instagram, whatsapp_dm. "
+        "LinkedIn should be thoughtful and build-in-public. X must be 280 characters or fewer. "
+        "Instagram should be caption-ready. WhatsApp/DM should be direct and personal. "
+        "Reuse the supplied style profile when present.\n\n"
+        f"Input:\n{json.dumps(prompt_payload, ensure_ascii=True, indent=2)}"
+    )
+
+
+def extract_json_object(text: str) -> Dict[str, Any]:
+    try:
+        parsed = json.loads(text)
+        return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        pass
+
+    fenced = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.IGNORECASE | re.MULTILINE).strip()
+    try:
+        parsed = json.loads(fenced)
+        return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    if not match:
+        return {}
+    try:
+        parsed = json.loads(match.group(0))
+        return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def normalize_generated_posts(data: Dict[str, Any], fallback: Dict[str, str]) -> Dict[str, str]:
+    normalized: Dict[str, str] = {}
+    for platform in ("linkedin", "x", "instagram", "whatsapp_dm"):
+        value = data.get(platform)
+        normalized[platform] = str(value).strip() if value else fallback[platform]
+    normalized["x"] = normalized["x"][:280]
+    return normalized
+
+
+async def generate_with_groq(context: Dict[str, Any], fallback: Dict[str, str]) -> Dict[str, str]:
+    if not GROQ_API_KEY:
+        raise RuntimeError("Groq API key is not configured")
+
+    payload = {
+        "model": GROQ_MODEL,
+        "temperature": 0.55,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {
+                "role": "system",
+                "content": "You generate precise, platform-specific social content and respond as JSON only.",
+            },
+            {"role": "user", "content": ai_generation_prompt(context)},
+        ],
+    }
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post("https://api.groq.com/openai/v1/chat/completions", json=payload, headers=headers)
+        response.raise_for_status()
+        body = response.json()
+
+    content = (((body.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+    parsed = extract_json_object(content)
+    if not parsed:
+        raise RuntimeError("Groq returned non-JSON content")
+    return normalize_generated_posts(parsed, fallback)
+
+
+async def generate_with_gemini(context: Dict[str, Any], fallback: Dict[str, str]) -> Dict[str, str]:
+    if not GEMINI_API_KEY:
+        raise RuntimeError("Gemini API key is not configured")
+
+    model_path = GEMINI_MODEL if GEMINI_MODEL.startswith("models/") else f"models/{GEMINI_MODEL}"
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": (
+                            "You generate precise, platform-specific social content and respond as JSON only.\n\n"
+                            f"{ai_generation_prompt(context)}"
+                        )
+                    }
+                ],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.55,
+            "responseMimeType": "application/json",
+        },
+    }
+    headers = {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        response = await client.post(f"https://generativelanguage.googleapis.com/v1beta/{model_path}:generateContent", json=payload, headers=headers)
+        response.raise_for_status()
+        body = response.json()
+
+    parts = (((body.get("candidates") or [{}])[0].get("content") or {}).get("parts") or [])
+    content = "\n".join(str(part.get("text", "")) for part in parts if isinstance(part, dict)).strip()
+    parsed = extract_json_object(content)
+    if not parsed:
+        raise RuntimeError("Gemini returned non-JSON content")
+    return normalize_generated_posts(parsed, fallback)
+
+
+async def generate_posts_with_ai(context: Dict[str, Any]) -> tuple[Dict[str, str], Dict[str, Any]]:
+    fallback = build_post_variants(context)
+    provider_order: List[str] = []
+    requested_provider = AI_PROVIDER or "auto"
+
+    if requested_provider in {"auto", "groq"} and GROQ_API_KEY:
+        provider_order.append("groq")
+    if requested_provider in {"auto", "gemini", "google"} and GEMINI_API_KEY:
+        provider_order.append("gemini")
+
+    errors: List[str] = []
+    for provider in provider_order:
+        try:
+            if provider == "groq":
+                posts = await generate_with_groq(context, fallback)
+                return posts, {
+                    "provider": "groq",
+                    "model": GROQ_MODEL,
+                    "fallback_used": False,
+                    "source": "backend_env",
+                }
+            posts = await generate_with_gemini(context, fallback)
+            return posts, {
+                "provider": "gemini",
+                "model": GEMINI_MODEL,
+                "fallback_used": False,
+                "source": "backend_env",
+            }
+        except Exception as exc:
+            logger.warning("%s generation failed; falling back if needed: %s", provider, exc)
+            errors.append(f"{provider}: {exc.__class__.__name__}: {str(exc)[:180]}")
+
+    return fallback, {
+        "provider": "deterministic_fallback",
+        "model": "local_rules",
+        "fallback_used": True,
+        "requested_provider": requested_provider,
+        "groq_configured": bool(GROQ_API_KEY),
+        "gemini_configured": bool(GEMINI_API_KEY),
+        "errors": errors[-3:],
+        "source": "backend_rules",
+    }
+
+
 def route_content(context: Dict[str, Any], style_profile: Dict[str, Any]) -> Dict[str, Any]:
     goal = context.get("goal", "general_update")
     analysis = context.get("analysis", {})
@@ -626,7 +831,7 @@ def summarize_kestra_execution(execution: Dict[str, Any]) -> Dict[str, Any]:
         "start_date": (execution.get("state") or {}).get("startDate"),
         "end_date": (execution.get("state") or {}).get("endDate"),
         "duration": (execution.get("state") or {}).get("duration"),
-        "inputs": compact_value(execution.get("inputs")),
+        "inputs": compact_value(mask_sensitive(execution.get("inputs"))),
         "task_runs": task_runs,
         "final_summary": extract_final_summary(execution),
         "url": kestra_execution_url(str(execution.get("id")), str(execution.get("flowId") or KESTRA_FLOW)),
@@ -646,6 +851,7 @@ def merge_final_summary(snapshot: Dict[str, Any], final_summary: Dict[str, Any])
         "selected_repo",
         "selected_commit",
         "selected_pr",
+        "ai_generation",
     ]:
         value = final_summary.get(key)
         if value not in (None, {}, []):
@@ -720,16 +926,20 @@ def summarize_logs(logs: List[Dict[str, Any]]) -> List[str]:
     return [f"{entry['timestamp']} [{entry['level']}] {entry['message']}" for entry in logs]
 
 
-def build_preview_package(run_id: str, payload: GenerateRequest) -> Dict[str, Any]:
+async def build_preview_package(run_id: str, payload: GenerateRequest) -> Dict[str, Any]:
     context = derive_context_bundle(payload)
     style_profile = payload.style_analysis or {}
-    generated_posts = build_post_variants(context)
+    generated_posts, ai_generation = await generate_posts_with_ai(context)
     routing_decision = route_content(context, style_profile if payload.use_style_profile else {})
     delivery_status = compute_delivery_status(payload.dry_run, payload.delivery_webhook_url)
 
     logs = [
         {"timestamp": utc_now_iso(), "level": "info", "message": f"Accepted {context['input_source']} input for {payload.project}"},
-        {"timestamp": utc_now_iso(), "level": "info", "message": f"Generated posts for {', '.join(generated_posts.keys())}"},
+        {
+            "timestamp": utc_now_iso(),
+            "level": "info",
+            "message": f"Generated posts for {', '.join(generated_posts.keys())} using {ai_generation.get('provider')}.",
+        },
         {"timestamp": utc_now_iso(), "level": "info", "message": f"Routing decision targets {', '.join(routing_decision['platforms'])}"},
     ]
     if payload.dry_run:
@@ -760,6 +970,7 @@ def build_preview_package(run_id: str, payload: GenerateRequest) -> Dict[str, An
         "delivery_status": delivery_status,
         "analysis": context.get("analysis", {}),
         "style_profile": style_profile,
+        "ai_generation": ai_generation,
         "execution_timeline": timeline,
         "logs": summarize_logs(logs),
         "errors": [],
@@ -831,6 +1042,8 @@ def analyze_style_samples(sample_posts: List[str]) -> Dict[str, Any]:
 
 async def trigger_kestra_flow(run_id: str, payload: Dict[str, Any]) -> Dict[str, Any]:
     url = f"{KESTRA_API_URL}/executions/{KESTRA_NAMESPACE}/{KESTRA_FLOW}"
+    github_token = effective_github_token(payload.get("github_token"))
+    sanitized_payload = mask_sensitive(payload)
     inputs = {
         "run_id": run_id,
         "source": payload.get("source") or "manual",
@@ -840,16 +1053,18 @@ async def trigger_kestra_flow(run_id: str, payload: Dict[str, Any]) -> Dict[str,
         "goal": payload.get("goal") or "general_update",
         "dry_run": str(payload.get("dry_run", True)).lower(),
         "github_username": payload.get("github_username") or DEFAULT_GITHUB_USERNAME,
-        "github_token": payload.get("github_token") or "",
+        "github_token": github_token or "",
         "selected_repo_json": json.dumps(payload.get("selected_repo") or {}, ensure_ascii=True),
         "selected_commit_json": json.dumps(payload.get("selected_commit") or {}, ensure_ascii=True),
         "selected_pr_json": json.dumps(payload.get("selected_pr") or {}, ensure_ascii=True),
         "github_context_json": json.dumps(payload.get("github_context") or {}, ensure_ascii=True),
         "style_analysis_json": json.dumps(payload.get("style_analysis") or {}, ensure_ascii=True),
+        "generated_posts_json": json.dumps(payload.get("generated_posts") or {}, ensure_ascii=True),
+        "ai_generation_json": json.dumps(payload.get("ai_generation") or {}, ensure_ascii=True),
         "use_style_profile": str(payload.get("use_style_profile", False)).lower(),
         "delivery_webhook_url": payload.get("delivery_webhook_url") or "",
         "input_source": payload.get("input_source") or payload.get("source") or "manual",
-        "raw_payload_json": json.dumps(payload, ensure_ascii=True),
+        "raw_payload_json": json.dumps(sanitized_payload, ensure_ascii=True),
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -878,7 +1093,7 @@ async def trigger_kestra_flow(run_id: str, payload: Dict[str, Any]) -> Dict[str,
                     "triggered_at": utc_now_iso(),
                     "updated_at": utc_now_iso(),
                     "kestra_response": body,
-                    "payload": payload,
+                    "payload": sanitized_payload,
                 }
             )
             write_run_snapshot(run_id, snapshot)
@@ -887,7 +1102,7 @@ async def trigger_kestra_flow(run_id: str, payload: Dict[str, Any]) -> Dict[str,
             raise
         except httpx.HTTPError as exc:
             logger.exception("Error triggering Kestra for run %s", run_id)
-            snapshot = read_run_snapshot(run_id) or {"id": run_id, "payload": payload}
+            snapshot = read_run_snapshot(run_id) or {"id": run_id, "payload": sanitized_payload}
             snapshot.update(
                 {
                     "status": "failed",
@@ -925,12 +1140,18 @@ def config_defaults():
         "github_username": DEFAULT_GITHUB_USERNAME,
         "github_repo_full_name": DEFAULT_GITHUB_REPO_FULL_NAME,
         "github_repo_url": DEFAULT_GITHUB_REPO_URL,
+        "github_token_configured": bool(DEFAULT_GITHUB_TOKEN),
         "project": DEFAULT_GITHUB_REPO_FULL_NAME,
         "author": DEFAULT_AUTHOR,
         "kestra_namespace": KESTRA_NAMESPACE,
         "kestra_flow": KESTRA_FLOW,
         "kestra_ui_url": KESTRA_UI_URL,
         "kestra_flow_url": kestra_flow_url(),
+        "ai_provider": AI_PROVIDER,
+        "groq_configured": bool(GROQ_API_KEY),
+        "groq_model": GROQ_MODEL if GROQ_API_KEY else None,
+        "gemini_configured": bool(GEMINI_API_KEY),
+        "gemini_model": GEMINI_MODEL if GEMINI_API_KEY else None,
         "mock_mode": AUTOPR_MOCK_MODE,
     }
 
@@ -1006,7 +1227,8 @@ async def fetch_repositories(req: GitHubReposRequest):
         }
 
     params = {"page": req.page, "per_page": req.per_page, "sort": "updated", "direction": "desc"}
-    repos = await github_api_json(f"/users/{username}/repos", token=req.token, params=params)
+    token = effective_github_token(req.token)
+    repos = await github_api_json(f"/users/{username}/repos", token=token, params=params)
     if not isinstance(repos, list):
         raise HTTPException(status_code=502, detail="Unexpected GitHub repositories payload")
 
@@ -1020,7 +1242,7 @@ async def fetch_repositories(req: GitHubReposRequest):
     pinned_error = None
     if pinned_ref:
         try:
-            pinned_repo = await github_api_json(f"/repos/{pinned_ref['owner']}/{pinned_ref['repo']}", token=req.token)
+            pinned_repo = await github_api_json(f"/repos/{pinned_ref['owner']}/{pinned_ref['repo']}", token=token)
             if isinstance(pinned_repo, dict):
                 pinned_item = normalize_repo_item(pinned_repo)
         except HTTPException as exc:
@@ -1033,7 +1255,7 @@ async def fetch_repositories(req: GitHubReposRequest):
         "items": items,
         "total_count": len(items),
         "source": "github",
-        "auth_mode": "token" if req.token else "public",
+        "auth_mode": "request_token" if req.token else ("backend_env_token" if token else "public"),
         "pinned_repo": pinned_ref.get("full_name") if pinned_ref else None,
         "pinned_repo_loaded": bool(pinned_item),
         "pinned_repo_error": pinned_error,
@@ -1049,11 +1271,18 @@ async def fetch_commits(req: GitHubItemsRequest):
         return {"items": [normalize_commit_item(commit) for commit in items], "total_count": len(items), "source": "mock"}
 
     params = {"page": req.page, "per_page": req.per_page}
-    commits = await github_api_json(f"/repos/{req.owner}/{req.repo}/commits", token=req.token, params=params)
+    token = effective_github_token(req.token)
+    commits = await github_api_json(f"/repos/{req.owner}/{req.repo}/commits", token=token, params=params)
     if not isinstance(commits, list):
         raise HTTPException(status_code=502, detail="Unexpected GitHub commits payload")
     items = [normalize_commit_item(commit) for commit in commits]
-    return {"items": items, "total_count": len(items), "source": "github", "message": f"Fetched {len(items)} commits."}
+    return {
+        "items": items,
+        "total_count": len(items),
+        "source": "github",
+        "auth_mode": "request_token" if req.token else ("backend_env_token" if token else "public"),
+        "message": f"Fetched {len(items)} commits.",
+    }
 
 
 @app.post("/api/github/fetch-prs")
@@ -1063,11 +1292,18 @@ async def fetch_pull_requests(req: GitHubItemsRequest):
         return {"items": [normalize_pr_item(pr) for pr in items], "total_count": len(items), "source": "mock"}
 
     params = {"page": req.page, "per_page": req.per_page, "state": "all", "sort": "updated", "direction": "desc"}
-    prs = await github_api_json(f"/repos/{req.owner}/{req.repo}/pulls", token=req.token, params=params)
+    token = effective_github_token(req.token)
+    prs = await github_api_json(f"/repos/{req.owner}/{req.repo}/pulls", token=token, params=params)
     if not isinstance(prs, list):
         raise HTTPException(status_code=502, detail="Unexpected GitHub pull requests payload")
     items = [normalize_pr_item(pr) for pr in prs]
-    return {"items": items, "total_count": len(items), "source": "github", "message": f"Fetched {len(items)} pull requests."}
+    return {
+        "items": items,
+        "total_count": len(items),
+        "source": "github",
+        "auth_mode": "request_token" if req.token else ("backend_env_token" if token else "public"),
+        "message": f"Fetched {len(items)} pull requests.",
+    }
 
 
 @app.post("/api/linkedin/analyze-style")
@@ -1144,7 +1380,7 @@ async def import_algsoch_style(req: SocialStyleImportRequest):
 @app.post("/api/generate")
 async def generate_content(req: GenerateRequest):
     run_id = req.run_id or make_run_id()
-    preview = build_preview_package(run_id, req)
+    preview = await build_preview_package(run_id, req)
     stored = upsert_run_preview(run_id, preview)
     return {
         "status": "draft_generated",
@@ -1157,11 +1393,16 @@ async def generate_content(req: GenerateRequest):
 @app.post("/api/kestra/trigger")
 async def trigger_kestra(req: KestraTriggerRequest):
     run_id = req.run_id or make_run_id()
-    if not read_run_snapshot(run_id):
-        preview = build_preview_package(run_id, req)
-        upsert_run_preview(run_id, preview)
+    snapshot = read_run_snapshot(run_id)
+    if not snapshot:
+        preview = await build_preview_package(run_id, req)
+        snapshot = upsert_run_preview(run_id, preview)
 
     payload = req.model_dump()
+    if snapshot.get("generated_posts"):
+        payload["generated_posts"] = snapshot.get("generated_posts")
+    if snapshot.get("ai_generation"):
+        payload["ai_generation"] = snapshot.get("ai_generation")
     result = await trigger_kestra_flow(run_id, payload)
     return {
         "status": "accepted",
@@ -1229,7 +1470,7 @@ async def github_webhook(request: Request):
         github_context={"webhook": payload},
         input_source="github_webhook",
     )
-    preview = build_preview_package(run_id, webhook_payload)
+    preview = await build_preview_package(run_id, webhook_payload)
     upsert_run_preview(run_id, preview)
     return {"status": "accepted", "run_id": run_id, "message": "GitHub webhook ingested."}
 
