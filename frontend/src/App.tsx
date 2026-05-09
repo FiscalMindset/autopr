@@ -17,6 +17,7 @@ import {
   GitPullRequest,
   Globe2,
   Loader2,
+  Mail,
   MessageCircle,
   MessageSquareText,
   RefreshCw,
@@ -313,10 +314,10 @@ const actionDefaults: Record<string, ActionState> = {
 };
 
 const platformMeta = {
-  linkedin: { label: 'LinkedIn', icon: Workflow, accent: 'from-cyan-400 to-sky-500' },
-  x: { label: 'X', icon: GitBranch, accent: 'from-slate-300 to-slate-500' },
-  instagram: { label: 'Instagram', icon: Globe2, accent: 'from-fuchsia-400 to-rose-500' },
-  whatsapp_dm: { label: 'WhatsApp / DM', icon: MessageCircle, accent: 'from-emerald-400 to-lime-500' },
+  linkedin: { label: 'LinkedIn', icon: Workflow, accent: 'from-cyan-400 to-sky-500', emoji: '💼' },
+  x: { label: 'X', icon: GitBranch, accent: 'from-slate-300 to-slate-500', emoji: '𝕏' },
+  instagram: { label: 'Instagram', icon: Globe2, accent: 'from-fuchsia-400 to-rose-500', emoji: '📷' },
+  whatsapp_dm: { label: 'WhatsApp / DM', icon: MessageCircle, accent: 'from-emerald-400 to-lime-500', emoji: '💬' },
 } as const;
 
 function formatTime(value?: string) {
@@ -646,6 +647,21 @@ function App() {
       pushNotice('success', 'Copied', `${label} copied to clipboard.`);
     } catch (error) {
       pushNotice('error', 'Copy failed', errorMessage(error));
+    }
+  };
+
+  const sendPostEmail = async (platform: string, content: string) => {
+    try {
+      await axios.post(`${API_URL}/send-post-email`, null, {
+        params: {
+          platform,
+          content,
+          llm_provider: currentAiGeneration?.provider || backendDefaults?.ai_provider || 'auto',
+        },
+      });
+      pushNotice('success', 'Email Sent', `${platform.toUpperCase()} post emailed successfully!`);
+    } catch (error) {
+      pushNotice('error', 'Email Failed', errorMessage(error));
     }
   };
 
@@ -1339,25 +1355,57 @@ function App() {
       )}
 
       {orchestrationTab === 'outputs' && (
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 space-y-4">
+          {/* LLM Info Banner */}
+          <div className="rounded-2xl border border-emerald-400/20 bg-gradient-to-r from-emerald-400/10 via-emerald-500/5 to-emerald-600/10 p-4">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">🤖</div>
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-emerald-300">LLM Generation Details</div>
+                <div className="mt-1 text-xs text-emerald-100/80">
+                  <span className="font-mono">
+                    {backendDefaults?.groq_configured && backendDefaults.groq_model ? `Groq: ${backendDefaults.groq_model}` : ''}
+                    {backendDefaults?.groq_configured && backendDefaults?.gemini_configured ? ' | ' : ''}
+                    {backendDefaults?.gemini_configured && backendDefaults.gemini_model ? `Gemini: ${backendDefaults.gemini_model}` : ''}
+                    {!backendDefaults?.groq_configured && !backendDefaults?.gemini_configured ? 'Loading models...' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Posts Grid */}
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {currentGeneratedPosts ? Object.entries(currentGeneratedPosts).map(([platform, content]) => {
             const status = currentDelivery?.[platform] || 'draft_generated';
             return (
-              <div key={platform} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+              <div key={platform} className="group rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/40 via-slate-950/60 to-slate-950/40 p-4 transition hover:border-cyan-400/30 hover:from-slate-900/60">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm font-medium text-white">{platformMeta[platform as keyof typeof platformMeta]?.label || platform}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-lg">{platformMeta[platform as keyof typeof platformMeta]?.emoji || '📱'}</div>
+                      <div className="text-sm font-semibold text-white">{platformMeta[platform as keyof typeof platformMeta]?.label || platform}</div>
+                    </div>
                     <div className="mt-1 text-xs text-slate-400">{deliveryMeaning(status)}</div>
                   </div>
                   <span className={`rounded-full border px-3 py-1 text-xs ${executionStatusTone(status)}`}>{status}</span>
                 </div>
+                <div className="mt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={() => void copyText(`${platform} output`, content)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-400/20"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs text-cyan-100 transition hover:bg-cyan-400/20"
                 >
-                  <Copy size={14} /> Copy Equivalent Post
+                  <Copy size={14} /> Copy
                 </button>
+                <button
+                  type="button"
+                  onClick={() => void sendPostEmail(platform, content)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-100 transition hover:bg-emerald-400/20"
+                >
+                  <Mail size={14} /> Email
+                </button>
+                </div>
                 <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/30 p-3 text-xs leading-5 text-slate-100">
 {content}
                 </pre>
@@ -1366,6 +1414,7 @@ function App() {
           }) : (
             <div className="rounded-2xl border border-dashed border-white/10 bg-white/5 p-5 text-sm text-slate-500">Generated platform outputs will appear here.</div>
           )}
+        </div>
         </div>
       )}
     </section>

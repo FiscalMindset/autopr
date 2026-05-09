@@ -3,7 +3,10 @@ import logging
 import os
 import re
 import uuid
+import smtplib
 from datetime import datetime, timezone
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -45,7 +48,63 @@ ALGSOCH_LINKEDIN_POST_URL = os.getenv(
 )
 ALGSOCH_LINKEDIN_PROFILE_URL = os.getenv("ALGSOCH_LINKEDIN_PROFILE_URL", "https://in.linkedin.com/in/algsoch")
 
+# Email Configuration
+GMAIL_ADDRESS = os.getenv("gmail", "").strip()
+GMAIL_PASSWORD = os.getenv("gmail_password", "").strip()
+GMAIL_SMTP_SERVER = "smtp.gmail.com"
+GMAIL_SMTP_PORT = 587
+WEBHOOK_AUTO_TRIGGER = os.getenv("WEBHOOK_AUTO_TRIGGER", "true").lower() == "true"
+
 allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if origin.strip()]
+
+
+# Email sending function
+def send_email(subject: str, body: str, recipient: Optional[str] = None, html_body: Optional[str] = None) -> bool:
+    """Send email notification via Gmail SMTP."""
+    if not GMAIL_ADDRESS or not GMAIL_PASSWORD:
+        logger.warning("Gmail credentials not configured. Email not sent.")
+        return False
+    
+    to_email = recipient or GMAIL_ADDRESS
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = GMAIL_ADDRESS
+        msg["To"] = to_email
+        
+        # Create HTML version
+        if not html_body:
+            html_body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+                    <h2 style="color: #0066cc;">{subject}</h2>
+                    <div style="margin-top: 20px; line-height: 1.6;">
+                        {body.replace(chr(10), '<br>')}
+                    </div>
+                    <div style="margin-top: 30px; font-size: 12px; color: #999; border-top: 1px solid #ddd; padding-top: 20px;">
+                        <p>AutoPR Engine • GitHub + Kestra + AI</p>
+                        <p>{datetime.now(timezone.utc).isoformat()}</p>
+                    </div>
+                </div>
+            </body>
+        </html>
+            """
+        
+        msg.attach(MIMEText(body, "plain"))
+        msg.attach(MIMEText(html_body, "html"))
+        
+        with smtplib.SMTP(GMAIL_SMTP_SERVER, GMAIL_SMTP_PORT) as server:
+            server.starttls()
+            server.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
+            server.send_message(msg)
+        
+        logger.info(f"Email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email: {str(e)}")
+        return False
+
 
 app = FastAPI(title="AutoPR Engine Backend")
 app.add_middleware(
@@ -1446,6 +1505,94 @@ def list_posts():
     return {"posts": posts}
 
 
+@app.post("/api/send-post-email")
+async def send_post_email(
+    platform: str,
+    content: str,
+    llm_provider: Optional[str] = None,
+    recipient: Optional[str] = None,
+):
+    """Send generated post content via email with professional styling."""
+    try:
+        gmail = os.getenv("gmail")
+        if not gmail:
+            raise HTTPException(status_code=400, detail="Email not configured")
+
+        recipient = recipient or gmail
+        platform_display = platform.upper()
+        
+        # Create professional HTML email
+        html_body = f"""
+        <html>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; margin: 0;">
+                <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; color: white; text-align: center;">
+                        <h1 style="margin: 0; font-size: 28px; font-weight: bold;">AutoPR Engine</h1>
+                        <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Generated Content for {platform_display}</p>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 30px;">
+                        <h2 style="color: #333; margin: 0 0 20px 0; font-size: 18px;">📱 {platform_display} Post</h2>
+                        
+                        <!-- Generated Post -->
+                        <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 6px; font-size: 14px; line-height: 1.6; color: #333;">
+                            {content.replace(chr(10), '<br>')}
+                        </div>
+                        
+                        <!-- LLM Info -->
+                        <div style="background: #f0f4ff; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 12px; color: #666;">
+                            <strong>🤖 Generated by:</strong> {llm_provider or 'Auto-selected LLM'}<br>
+                            <strong>⏰ Timestamp:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div style="margin: 30px 0; text-align: center;">
+                            <a href="https://localhost:3000" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: bold; margin: 0 10px;">
+                                View Dashboard
+                            </a>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center; font-size: 12px; color: #999;">
+                            <p>This email was generated by AutoPR Engine</p>
+                            <p>© 2026 AutoPR. All rights reserved.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        
+        # Create plain text version
+        text_body = f"""
+AutoPR Engine - Generated {platform_display} Post
+
+{content}
+
+---
+Generated by: {llm_provider or 'Auto-selected LLM'}
+Timestamp: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
+        """
+        
+        success = send_email(
+            subject=f"📱 AutoPR: {platform_display} Post Generated",
+            body=text_body,
+            recipient=recipient,
+            html_body=html_body,
+        )
+        
+        if success:
+            logger.info(f"Post email sent to {recipient} for platform: {platform}")
+            return {"status": "success", "message": f"Email sent to {recipient}", "platform": platform}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to send email")
+            
+    except Exception as e:
+        logger.error(f"Error sending post email: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/github-webhook")
 async def github_webhook(request: Request):
     payload = await request.json()
@@ -1456,13 +1603,18 @@ async def github_webhook(request: Request):
     if commits:
         raw_update = " | ".join(commit.get("message", "") for commit in commits if commit.get("message"))
         author = (commits[0].get("author") or {}).get("name") or "GitHub Webhook"
+        commit_details = [f"• {c.get('message', '')} by {c.get('author', {}).get('name', 'Unknown')}" for c in commits]
     else:
         raw_update = repository.get("description") or "Repository update received"
         author = "GitHub Webhook"
+        commit_details = ["No commits in this webhook"]
 
+    repo_full_name = repository.get("full_name") or repository.get("name") or "Unknown"
+    repo_url = repository.get("html_url", "")
+    
     webhook_payload = GenerateRequest(
         source="github_webhook",
-        project=repository.get("full_name") or repository.get("name") or "Unknown",
+        project=repo_full_name,
         raw_update=raw_update,
         author=author,
         goal="build_in_public",
@@ -1470,9 +1622,82 @@ async def github_webhook(request: Request):
         github_context={"webhook": payload},
         input_source="github_webhook",
     )
+    
+    # Build preview
     preview = await build_preview_package(run_id, webhook_payload)
     upsert_run_preview(run_id, preview)
-    return {"status": "accepted", "run_id": run_id, "message": "GitHub webhook ingested."}
+    
+    # Send email notification
+    email_subject = f"🔔 AutoPR: New Webhook from {repo_full_name}"
+    email_body = f"""
+New GitHub webhook received and processed!
+
+📦 Repository: {repo_full_name}
+👤 Author: {author}
+🆔 Run ID: {run_id}
+
+📋 Commits:
+{chr(10).join(commit_details)}
+
+🎯 Status: Preview generated and ready to review
+📊 Next Steps: Review generated content in the dashboard and trigger Kestra execution
+
+🔗 Repository URL: {repo_url}
+
+Auto-Trigger: {'ENABLED' if WEBHOOK_AUTO_TRIGGER else 'DISABLED'}
+"""
+
+    # Send email if configured
+    send_email(email_subject, email_body)
+    
+    # Auto-trigger Kestra execution if enabled
+    execution_id = None
+    trigger_status = "not_triggered"
+    trigger_message = "auto-trigger disabled"
+    
+    if WEBHOOK_AUTO_TRIGGER:
+        try:
+            execution_id = await trigger_kestra_execution(webhook_payload)
+            trigger_status = "triggered"
+            trigger_message = f"Automatically triggered Kestra execution: {execution_id}"
+            
+            # Update preview with execution ID
+            if preview:
+                preview["kestra_execution_id"] = execution_id
+                upsert_run_preview(run_id, preview)
+            
+            # Send follow-up email with execution details
+            if execution_id:
+                execution_url = f"{KESTRA_UI_URL.replace('/ui', '')}/executions/{KESTRA_NAMESPACE}/{KESTRA_FLOW}/{execution_id}"
+                send_email(
+                    f"✅ AutoPR: Kestra Execution Started - {execution_id}",
+                    f"""
+Kestra execution has been automatically triggered!
+
+🆔 Execution ID: {execution_id}
+🔗 View Execution: {execution_url}
+🎯 Flow: {KESTRA_NAMESPACE}/{KESTRA_FLOW}
+
+Monitor the execution in the Kestra UI dashboard.
+"""
+                )
+        except Exception as e:
+            trigger_status = "error"
+            trigger_message = f"Auto-trigger failed: {str(e)}"
+            logger.error(f"Failed to auto-trigger Kestra: {str(e)}")
+    
+    logger.info(f"Webhook processed: run_id={run_id}, status={trigger_status}, message={trigger_message}")
+    
+    return {
+        "status": "accepted",
+        "run_id": run_id,
+        "message": "GitHub webhook ingested and processed.",
+        "auto_trigger": {
+            "status": trigger_status,
+            "execution_id": execution_id,
+            "message": trigger_message
+        }
+    }
 
 
 if __name__ == "__main__":

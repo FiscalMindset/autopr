@@ -7,6 +7,22 @@ AutoPR Engine is an advanced orchestration system built on top of **Kestra** tha
 ## 🌟 Pitch
 Developers hate writing release notes and social media updates. AutoPR Engine automates this entirely. By throwing a single raw update into the system, Kestra orchestrates a complex workflow of analysis, parallel generation, intelligent routing, and delivery.
 
+## ✨ New Features (May 2026)
+
+### 🎯 Recently Implemented
+1. **GitHub Webhook Auto-Trigger** - Automatically starts Kestra execution on commits
+2. **Gmail Email Notifications** - Sends updates to your email on webhook events
+3. **Auto-Scroll Interface** - Dashboard smoothly scrolls to content when you select tabs
+4. **Direct Kestra Links** - Quick access to Kestra's topology and Gantt views
+5. **Render Deployment Support** - Full production deployment guide (~$8-17/month)
+
+**Quick Start:** See [QUICKSTART.md](QUICKSTART.md) to test all features in 5 minutes!
+
+**Complete Details:** 
+- [Implementation Summary](IMPLEMENTATION_COMPLETE.md) - What was built and why
+- [Final Summary](FINAL_SUMMARY.md) - Technical approach and comparison
+- [Render Deployment](DEPLOYMENT_RENDER.md) - Production deployment guide
+
 ## 🏗 Architecture
 The system consists of:
 - **Kestra Orchestrator**: The brain running the workflow DAG.
