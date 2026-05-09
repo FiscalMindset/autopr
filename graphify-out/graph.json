@@ -1,0 +1,4405 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "core_autopr_architecture_0",
+        "label": "Core AutoPR Architecture",
+        "nodes": [
+          "concept_frontend",
+          "concept_backend",
+          "concept_kestra"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "chunk_0"
+      },
+      {
+        "id": "webhook_dataflow_0",
+        "label": "GitHub to Kestra Execution Flow",
+        "nodes": [
+          "concept_concept_github",
+          "concept_concept_webhook",
+          "concept_concept_backend",
+          "concept_concept_kestra"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.95,
+        "source_file": "chunk_0"
+      },
+      {
+        "id": "core_autopr_architecture_1",
+        "label": "Core AutoPR Architecture",
+        "nodes": [
+          "concept_frontend",
+          "concept_backend",
+          "concept_kestra"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "chunk_1"
+      },
+      {
+        "id": "webhook_dataflow_1",
+        "label": "GitHub to Kestra Execution Flow",
+        "nodes": [
+          "concept_concept_github",
+          "concept_concept_webhook",
+          "concept_concept_backend",
+          "concept_concept_kestra"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 0.95,
+        "source_file": "chunk_1"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "main.py",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1",
+      "id": "backend_main_py",
+      "community": 1,
+      "norm_label": "main.py"
+    },
+    {
+      "label": "send_email()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L62",
+      "id": "backend_main_send_email",
+      "community": 4,
+      "norm_label": "send_email()"
+    },
+    {
+      "label": "request_logger()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L120",
+      "id": "backend_main_request_logger",
+      "community": 1,
+      "norm_label": "request_logger()"
+    },
+    {
+      "label": "GitHubReposRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L132",
+      "id": "backend_main_githubreposrequest",
+      "community": 1,
+      "norm_label": "githubreposrequest"
+    },
+    {
+      "label": "BaseModel",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "id": "basemodel",
+      "community": 1,
+      "norm_label": "basemodel"
+    },
+    {
+      "label": "GitHubItemsRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L143",
+      "id": "backend_main_githubitemsrequest",
+      "community": 1,
+      "norm_label": "githubitemsrequest"
+    },
+    {
+      "label": "StyleAnalysisRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L152",
+      "id": "backend_main_styleanalysisrequest",
+      "community": 1,
+      "norm_label": "styleanalysisrequest"
+    },
+    {
+      "label": "validate_sample_posts()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L158",
+      "id": "backend_main_validate_sample_posts",
+      "community": 1,
+      "norm_label": "validate_sample_posts()"
+    },
+    {
+      "label": "SocialStyleImportRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L166",
+      "id": "backend_main_socialstyleimportrequest",
+      "community": 1,
+      "norm_label": "socialstyleimportrequest"
+    },
+    {
+      "label": "RepoRef",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L173",
+      "id": "backend_main_reporef",
+      "community": 1,
+      "norm_label": "reporef"
+    },
+    {
+      "label": "normalize_owner()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L185",
+      "id": "backend_main_normalize_owner",
+      "community": 1,
+      "norm_label": "normalize_owner()"
+    },
+    {
+      "label": "CommitRef",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L191",
+      "id": "backend_main_commitref",
+      "community": 1,
+      "norm_label": "commitref"
+    },
+    {
+      "label": "PRRef",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L201",
+      "id": "backend_main_prref",
+      "community": 1,
+      "norm_label": "prref"
+    },
+    {
+      "label": "GenerateRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L212",
+      "id": "backend_main_generaterequest",
+      "community": 1,
+      "norm_label": "generaterequest"
+    },
+    {
+      "label": "KestraTriggerRequest",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L233",
+      "id": "backend_main_kestratriggerrequest",
+      "community": 1,
+      "norm_label": "kestratriggerrequest"
+    },
+    {
+      "label": "utc_now()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L237",
+      "id": "backend_main_utc_now",
+      "community": 3,
+      "norm_label": "utc_now()"
+    },
+    {
+      "label": "utc_now_iso()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L241",
+      "id": "backend_main_utc_now_iso",
+      "community": 3,
+      "norm_label": "utc_now_iso()"
+    },
+    {
+      "label": "ensure_storage()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L245",
+      "id": "backend_main_ensure_storage",
+      "community": 3,
+      "norm_label": "ensure_storage()"
+    },
+    {
+      "label": "load_json_file()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L250",
+      "id": "backend_main_load_json_file",
+      "community": 3,
+      "norm_label": "load_json_file()"
+    },
+    {
+      "label": "save_json_file()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L259",
+      "id": "backend_main_save_json_file",
+      "community": 3,
+      "norm_label": "save_json_file()"
+    },
+    {
+      "label": "make_run_id()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L264",
+      "id": "backend_main_make_run_id",
+      "community": 3,
+      "norm_label": "make_run_id()"
+    },
+    {
+      "label": "parse_github_repo_ref()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L268",
+      "id": "backend_main_parse_github_repo_ref",
+      "community": 1,
+      "norm_label": "parse_github_repo_ref()"
+    },
+    {
+      "label": "github_headers()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L285",
+      "id": "backend_main_github_headers",
+      "community": 1,
+      "norm_label": "github_headers()"
+    },
+    {
+      "label": "mask_sensitive()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L299",
+      "id": "backend_main_mask_sensitive",
+      "community": 1,
+      "norm_label": "mask_sensitive()"
+    },
+    {
+      "label": "effective_github_token()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L314",
+      "id": "backend_main_effective_github_token",
+      "community": 1,
+      "norm_label": "effective_github_token()"
+    },
+    {
+      "label": "mock_repositories()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L318",
+      "id": "backend_main_mock_repositories",
+      "community": 1,
+      "norm_label": "mock_repositories()"
+    },
+    {
+      "label": "mock_commits()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L355",
+      "id": "backend_main_mock_commits",
+      "community": 1,
+      "norm_label": "mock_commits()"
+    },
+    {
+      "label": "mock_pull_requests()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L378",
+      "id": "backend_main_mock_pull_requests",
+      "community": 1,
+      "norm_label": "mock_pull_requests()"
+    },
+    {
+      "label": "github_api_json()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L399",
+      "id": "backend_main_github_api_json",
+      "community": 1,
+      "norm_label": "github_api_json()"
+    },
+    {
+      "label": "normalize_repo_item()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L415",
+      "id": "backend_main_normalize_repo_item",
+      "community": 1,
+      "norm_label": "normalize_repo_item()"
+    },
+    {
+      "label": "unique_repositories()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L439",
+      "id": "backend_main_unique_repositories",
+      "community": 1,
+      "norm_label": "unique_repositories()"
+    },
+    {
+      "label": "normalize_commit_item()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L451",
+      "id": "backend_main_normalize_commit_item",
+      "community": 1,
+      "norm_label": "normalize_commit_item()"
+    },
+    {
+      "label": "normalize_pr_item()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L464",
+      "id": "backend_main_normalize_pr_item",
+      "community": 1,
+      "norm_label": "normalize_pr_item()"
+    },
+    {
+      "label": "collect_keywords()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L475",
+      "id": "backend_main_collect_keywords",
+      "community": 4,
+      "norm_label": "collect_keywords()"
+    },
+    {
+      "label": "pick_raw_update()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L481",
+      "id": "backend_main_pick_raw_update",
+      "community": 4,
+      "norm_label": "pick_raw_update()"
+    },
+    {
+      "label": "derive_context_bundle()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L495",
+      "id": "backend_main_derive_context_bundle",
+      "community": 4,
+      "norm_label": "derive_context_bundle()"
+    },
+    {
+      "label": "build_post_variants()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L541",
+      "id": "backend_main_build_post_variants",
+      "community": 5,
+      "norm_label": "build_post_variants()"
+    },
+    {
+      "label": "ai_generation_prompt()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L580",
+      "id": "backend_main_ai_generation_prompt",
+      "community": 5,
+      "norm_label": "ai_generation_prompt()"
+    },
+    {
+      "label": "extract_json_object()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L601",
+      "id": "backend_main_extract_json_object",
+      "community": 5,
+      "norm_label": "extract_json_object()"
+    },
+    {
+      "label": "normalize_generated_posts()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L625",
+      "id": "backend_main_normalize_generated_posts",
+      "community": 5,
+      "norm_label": "normalize_generated_posts()"
+    },
+    {
+      "label": "generate_with_groq()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L634",
+      "id": "backend_main_generate_with_groq",
+      "community": 5,
+      "norm_label": "generate_with_groq()"
+    },
+    {
+      "label": "generate_with_gemini()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L666",
+      "id": "backend_main_generate_with_gemini",
+      "community": 5,
+      "norm_label": "generate_with_gemini()"
+    },
+    {
+      "label": "generate_posts_with_ai()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L707",
+      "id": "backend_main_generate_posts_with_ai",
+      "community": 5,
+      "norm_label": "generate_posts_with_ai()"
+    },
+    {
+      "label": "route_content()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L751",
+      "id": "backend_main_route_content",
+      "community": 4,
+      "norm_label": "route_content()"
+    },
+    {
+      "label": "compute_delivery_status()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L790",
+      "id": "backend_main_compute_delivery_status",
+      "community": 4,
+      "norm_label": "compute_delivery_status()"
+    },
+    {
+      "label": "write_run_snapshot()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L813",
+      "id": "backend_main_write_run_snapshot",
+      "community": 3,
+      "norm_label": "write_run_snapshot()"
+    },
+    {
+      "label": "read_run_snapshot()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L820",
+      "id": "backend_main_read_run_snapshot",
+      "community": 3,
+      "norm_label": "read_run_snapshot()"
+    },
+    {
+      "label": "kestra_execution_url()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L824",
+      "id": "backend_main_kestra_execution_url",
+      "community": 1,
+      "norm_label": "kestra_execution_url()"
+    },
+    {
+      "label": "kestra_flow_url()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L828",
+      "id": "backend_main_kestra_flow_url",
+      "community": 1,
+      "norm_label": "kestra_flow_url()"
+    },
+    {
+      "label": "compact_value()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L832",
+      "id": "backend_main_compact_value",
+      "community": 1,
+      "norm_label": "compact_value()"
+    },
+    {
+      "label": "flatten_flow_tasks()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L844",
+      "id": "backend_main_flatten_flow_tasks",
+      "community": 1,
+      "norm_label": "flatten_flow_tasks()"
+    },
+    {
+      "label": "summarize_kestra_execution()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L867",
+      "id": "backend_main_summarize_kestra_execution",
+      "community": 1,
+      "norm_label": "summarize_kestra_execution()"
+    },
+    {
+      "label": "merge_final_summary()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L900",
+      "id": "backend_main_merge_final_summary",
+      "community": 3,
+      "norm_label": "merge_final_summary()"
+    },
+    {
+      "label": "extract_final_summary()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L926",
+      "id": "backend_main_extract_final_summary",
+      "community": 1,
+      "norm_label": "extract_final_summary()"
+    },
+    {
+      "label": "update_timeline_status()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L937",
+      "id": "backend_main_update_timeline_status",
+      "community": 3,
+      "norm_label": "update_timeline_status()"
+    },
+    {
+      "label": "sync_run_with_kestra()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L947",
+      "id": "backend_main_sync_run_with_kestra",
+      "community": 3,
+      "norm_label": "sync_run_with_kestra()"
+    },
+    {
+      "label": "summarize_logs()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L984",
+      "id": "backend_main_summarize_logs",
+      "community": 4,
+      "norm_label": "summarize_logs()"
+    },
+    {
+      "label": "build_preview_package()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L988",
+      "id": "backend_main_build_preview_package",
+      "community": 4,
+      "norm_label": "build_preview_package()"
+    },
+    {
+      "label": "normalize_sample_posts()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1044",
+      "id": "backend_main_normalize_sample_posts",
+      "community": 3,
+      "norm_label": "normalize_sample_posts()"
+    },
+    {
+      "label": "analyze_style_samples()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1051",
+      "id": "backend_main_analyze_style_samples",
+      "community": 3,
+      "norm_label": "analyze_style_samples()"
+    },
+    {
+      "label": "trigger_kestra_flow()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1102",
+      "id": "backend_main_trigger_kestra_flow",
+      "community": 3,
+      "norm_label": "trigger_kestra_flow()"
+    },
+    {
+      "label": "upsert_run_preview()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1176",
+      "id": "backend_main_upsert_run_preview",
+      "community": 3,
+      "norm_label": "upsert_run_preview()"
+    },
+    {
+      "label": "health_check()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1186",
+      "id": "backend_main_health_check",
+      "community": 3,
+      "norm_label": "health_check()"
+    },
+    {
+      "label": "config_defaults()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1197",
+      "id": "backend_main_config_defaults",
+      "community": 1,
+      "norm_label": "config_defaults()"
+    },
+    {
+      "label": "get_kestra_flow_definition()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1219",
+      "id": "backend_main_get_kestra_flow_definition",
+      "community": 1,
+      "norm_label": "get_kestra_flow_definition()"
+    },
+    {
+      "label": "get_kestra_execution_details()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1247",
+      "id": "backend_main_get_kestra_execution_details",
+      "community": 1,
+      "norm_label": "get_kestra_execution_details()"
+    },
+    {
+      "label": "fetch_repositories()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1274",
+      "id": "backend_main_fetch_repositories",
+      "community": 1,
+      "norm_label": "fetch_repositories()"
+    },
+    {
+      "label": "fetch_commits()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1327",
+      "id": "backend_main_fetch_commits",
+      "community": 1,
+      "norm_label": "fetch_commits()"
+    },
+    {
+      "label": "fetch_pull_requests()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1348",
+      "id": "backend_main_fetch_pull_requests",
+      "community": 1,
+      "norm_label": "fetch_pull_requests()"
+    },
+    {
+      "label": "analyze_linkedin_style()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1369",
+      "id": "backend_main_analyze_linkedin_style",
+      "community": 3,
+      "norm_label": "analyze_linkedin_style()"
+    },
+    {
+      "label": "import_algsoch_style()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1392",
+      "id": "backend_main_import_algsoch_style",
+      "community": 3,
+      "norm_label": "import_algsoch_style()"
+    },
+    {
+      "label": "generate_content()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1440",
+      "id": "backend_main_generate_content",
+      "community": 3,
+      "norm_label": "generate_content()"
+    },
+    {
+      "label": "trigger_kestra()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1453",
+      "id": "backend_main_trigger_kestra",
+      "community": 3,
+      "norm_label": "trigger_kestra()"
+    },
+    {
+      "label": "list_runs()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1475",
+      "id": "backend_main_list_runs",
+      "community": 3,
+      "norm_label": "list_runs()"
+    },
+    {
+      "label": "get_run()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1489",
+      "id": "backend_main_get_run",
+      "community": 3,
+      "norm_label": "get_run()"
+    },
+    {
+      "label": "list_posts()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1497",
+      "id": "backend_main_list_posts",
+      "community": 3,
+      "norm_label": "list_posts()"
+    },
+    {
+      "label": "send_post_email()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1509",
+      "id": "backend_main_send_post_email",
+      "community": 4,
+      "norm_label": "send_post_email()"
+    },
+    {
+      "label": "github_webhook()",
+      "file_type": "code",
+      "source_file": "backend/main.py",
+      "source_location": "L1597",
+      "id": "backend_main_github_webhook",
+      "community": 4,
+      "norm_label": "github_webhook()"
+    },
+    {
+      "label": "Send email notification via Gmail SMTP.",
+      "file_type": "rationale",
+      "source_file": "backend/main.py",
+      "source_location": "L63",
+      "id": "backend_main_rationale_63",
+      "community": 4,
+      "norm_label": "send email notification via gmail smtp."
+    },
+    {
+      "label": "Send generated post content via email with professional styling.",
+      "file_type": "rationale",
+      "source_file": "backend/main.py",
+      "source_location": "L1515",
+      "id": "backend_main_rationale_1515",
+      "community": 4,
+      "norm_label": "send generated post content via email with professional styling."
+    },
+    {
+      "label": "App.tsx",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L1",
+      "id": "frontend_src_app_tsx",
+      "community": 0,
+      "norm_label": "app.tsx"
+    },
+    {
+      "label": "RepoItem",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L49",
+      "id": "src_app_repoitem",
+      "community": 0,
+      "norm_label": "repoitem"
+    },
+    {
+      "label": "CommitItem",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L70",
+      "id": "src_app_commititem",
+      "community": 0,
+      "norm_label": "commititem"
+    },
+    {
+      "label": "PullRequestItem",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L79",
+      "id": "src_app_pullrequestitem",
+      "community": 0,
+      "norm_label": "pullrequestitem"
+    },
+    {
+      "label": "RepoRefPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L88",
+      "id": "src_app_reporefpayload",
+      "community": 0,
+      "norm_label": "reporefpayload"
+    },
+    {
+      "label": "CommitRefPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L97",
+      "id": "src_app_commitrefpayload",
+      "community": 0,
+      "norm_label": "commitrefpayload"
+    },
+    {
+      "label": "PullRequestRefPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L105",
+      "id": "src_app_pullrequestrefpayload",
+      "community": 0,
+      "norm_label": "pullrequestrefpayload"
+    },
+    {
+      "label": "StyleAnalysis",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L114",
+      "id": "src_app_styleanalysis",
+      "community": 0,
+      "norm_label": "styleanalysis"
+    },
+    {
+      "label": "GeneratedPosts",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L134",
+      "id": "src_app_generatedposts",
+      "community": 0,
+      "norm_label": "generatedposts"
+    },
+    {
+      "label": "DeliveryStatus",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L141",
+      "id": "src_app_deliverystatus",
+      "community": 0,
+      "norm_label": "deliverystatus"
+    },
+    {
+      "label": "AiGeneration",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L143",
+      "id": "src_app_aigeneration",
+      "community": 0,
+      "norm_label": "aigeneration"
+    },
+    {
+      "label": "RunTimeline",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L153",
+      "id": "src_app_runtimeline",
+      "community": 0,
+      "norm_label": "runtimeline"
+    },
+    {
+      "label": "RunRecord",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L158",
+      "id": "src_app_runrecord",
+      "community": 0,
+      "norm_label": "runrecord"
+    },
+    {
+      "label": "PostRecord",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L192",
+      "id": "src_app_postrecord",
+      "community": 0,
+      "norm_label": "postrecord"
+    },
+    {
+      "label": "KestraTaskDefinition",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L201",
+      "id": "src_app_kestrataskdefinition",
+      "community": 0,
+      "norm_label": "kestrataskdefinition"
+    },
+    {
+      "label": "KestraFlowDefinition",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L211",
+      "id": "src_app_kestraflowdefinition",
+      "community": 0,
+      "norm_label": "kestraflowdefinition"
+    },
+    {
+      "label": "KestraTaskRun",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L222",
+      "id": "src_app_kestrataskrun",
+      "community": 0,
+      "norm_label": "kestrataskrun"
+    },
+    {
+      "label": "KestraExecutionDetails",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L233",
+      "id": "src_app_kestraexecutiondetails",
+      "community": 0,
+      "norm_label": "kestraexecutiondetails"
+    },
+    {
+      "label": "BackendDefaults",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L252",
+      "id": "src_app_backenddefaults",
+      "community": 0,
+      "norm_label": "backenddefaults"
+    },
+    {
+      "label": "OrchestrationTab",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L266",
+      "id": "src_app_orchestrationtab",
+      "community": 0,
+      "norm_label": "orchestrationtab"
+    },
+    {
+      "label": "ActionPhase",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L268",
+      "id": "src_app_actionphase",
+      "community": 0,
+      "norm_label": "actionphase"
+    },
+    {
+      "label": "ActionState",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L270",
+      "id": "src_app_actionstate",
+      "community": 0,
+      "norm_label": "actionstate"
+    },
+    {
+      "label": "Notice",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L277",
+      "id": "src_app_notice",
+      "community": 0,
+      "norm_label": "notice"
+    },
+    {
+      "label": "WorkflowPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L284",
+      "id": "src_app_workflowpayload",
+      "community": 0,
+      "norm_label": "workflowpayload"
+    },
+    {
+      "label": "actionDefaults",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L304",
+      "id": "src_app_actiondefaults",
+      "community": 0,
+      "norm_label": "actiondefaults"
+    },
+    {
+      "label": "platformMeta",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L316",
+      "id": "src_app_platformmeta",
+      "community": 0,
+      "norm_label": "platformmeta"
+    },
+    {
+      "label": "formatTime()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L323",
+      "id": "src_app_formattime",
+      "community": 0,
+      "norm_label": "formattime()"
+    },
+    {
+      "label": "statusTone()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L331",
+      "id": "src_app_statustone",
+      "community": 6,
+      "norm_label": "statustone()"
+    },
+    {
+      "label": "noticeTone()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L338",
+      "id": "src_app_noticetone",
+      "community": 0,
+      "norm_label": "noticetone()"
+    },
+    {
+      "label": "errorMessage()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L344",
+      "id": "src_app_errormessage",
+      "community": 0,
+      "norm_label": "errormessage()"
+    },
+    {
+      "label": "splitSamples()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L362",
+      "id": "src_app_splitsamples",
+      "community": 0,
+      "norm_label": "splitsamples()"
+    },
+    {
+      "label": "countWords()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L369",
+      "id": "src_app_countwords",
+      "community": 0,
+      "norm_label": "countwords()"
+    },
+    {
+      "label": "deliveryMeaning()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L373",
+      "id": "src_app_deliverymeaning",
+      "community": 6,
+      "norm_label": "deliverymeaning()"
+    },
+    {
+      "label": "executionStatusTone()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L382",
+      "id": "src_app_executionstatustone",
+      "community": 6,
+      "norm_label": "executionstatustone()"
+    },
+    {
+      "label": "parseKestraDuration()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L389",
+      "id": "src_app_parsekestraduration",
+      "community": 0,
+      "norm_label": "parsekestraduration()"
+    },
+    {
+      "label": "formatDurationMs()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L399",
+      "id": "src_app_formatdurationms",
+      "community": 0,
+      "norm_label": "formatdurationms()"
+    },
+    {
+      "label": "toRepoRef()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L406",
+      "id": "src_app_toreporef",
+      "community": 0,
+      "norm_label": "toreporef()"
+    },
+    {
+      "label": "toCommitRef()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L418",
+      "id": "src_app_tocommitref",
+      "community": 0,
+      "norm_label": "tocommitref()"
+    },
+    {
+      "label": "toPullRequestRef()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L429",
+      "id": "src_app_topullrequestref",
+      "community": 0,
+      "norm_label": "topullrequestref()"
+    },
+    {
+      "label": "App()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L441",
+      "id": "src_app_app",
+      "community": 6,
+      "norm_label": "app()"
+    },
+    {
+      "label": "ActionCard()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2258",
+      "id": "src_app_actioncard",
+      "community": 6,
+      "norm_label": "actioncard()"
+    },
+    {
+      "label": "SummaryBadge()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2272",
+      "id": "src_app_summarybadge",
+      "community": 0,
+      "norm_label": "summarybadge()"
+    },
+    {
+      "label": "StatPill()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2281",
+      "id": "src_app_statpill",
+      "community": 0,
+      "norm_label": "statpill()"
+    },
+    {
+      "label": "DetailRow()",
+      "file_type": "code",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2290",
+      "id": "src_app_detailrow",
+      "community": 0,
+      "norm_label": "detailrow()"
+    },
+    {
+      "label": "main.tsx",
+      "file_type": "code",
+      "source_file": "frontend/src/main.tsx",
+      "source_location": "L1",
+      "id": "frontend_src_main_tsx",
+      "community": 0,
+      "norm_label": "main.tsx"
+    },
+    {
+      "label": "vite.config.ts",
+      "file_type": "code",
+      "source_file": "frontend/vite.config.ts",
+      "source_location": "L1",
+      "id": "frontend_vite_config_ts",
+      "community": 11,
+      "norm_label": "vite.config.ts"
+    },
+    {
+      "label": "analyze.py",
+      "file_type": "code",
+      "source_file": "scripts/analyze.py",
+      "source_location": "L1",
+      "id": "scripts_analyze_py",
+      "community": 7,
+      "norm_label": "analyze.py"
+    },
+    {
+      "label": "analyze()",
+      "file_type": "code",
+      "source_file": "scripts/analyze.py",
+      "source_location": "L6",
+      "id": "scripts_analyze_analyze",
+      "community": 7,
+      "norm_label": "analyze()"
+    },
+    {
+      "label": "generate.py",
+      "file_type": "code",
+      "source_file": "scripts/generate.py",
+      "source_location": "L1",
+      "id": "scripts_generate_py",
+      "community": 8,
+      "norm_label": "generate.py"
+    },
+    {
+      "label": "generate_post()",
+      "file_type": "code",
+      "source_file": "scripts/generate.py",
+      "source_location": "L5",
+      "id": "scripts_generate_generate_post",
+      "community": 8,
+      "norm_label": "generate_post()"
+    },
+    {
+      "label": "route.py",
+      "file_type": "code",
+      "source_file": "scripts/route.py",
+      "source_location": "L1",
+      "id": "scripts_route_py",
+      "community": 9,
+      "norm_label": "route.py"
+    },
+    {
+      "label": "route()",
+      "file_type": "code",
+      "source_file": "scripts/route.py",
+      "source_location": "L4",
+      "id": "scripts_route_route",
+      "community": 9,
+      "norm_label": "route()"
+    },
+    {
+      "label": "deliver.py",
+      "file_type": "code",
+      "source_file": "scripts/deliver.py",
+      "source_location": "L1",
+      "id": "scripts_deliver_py",
+      "community": 10,
+      "norm_label": "deliver.py"
+    },
+    {
+      "label": "deliver()",
+      "file_type": "code",
+      "source_file": "scripts/deliver.py",
+      "source_location": "L6",
+      "id": "scripts_deliver_deliver",
+      "community": 10,
+      "norm_label": "deliver()"
+    },
+    {
+      "label": "Kestra",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_kestra",
+      "community": 2,
+      "norm_label": "kestra"
+    },
+    {
+      "label": "AutoPR",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_autopr",
+      "community": 2,
+      "norm_label": "autopr"
+    },
+    {
+      "label": "Frontend",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_frontend",
+      "community": 2,
+      "norm_label": "frontend"
+    },
+    {
+      "label": "Backend",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_backend",
+      "community": 2,
+      "norm_label": "backend"
+    },
+    {
+      "label": "GitHub",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_github",
+      "community": 2,
+      "norm_label": "github"
+    },
+    {
+      "label": "FastAPI",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_fastapi",
+      "community": 2,
+      "norm_label": "fastapi"
+    },
+    {
+      "label": "React",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_react",
+      "community": 2,
+      "norm_label": "react"
+    },
+    {
+      "label": "Vite",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_vite",
+      "community": 2,
+      "norm_label": "vite"
+    },
+    {
+      "label": "Docker",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_docker",
+      "community": 2,
+      "norm_label": "docker"
+    },
+    {
+      "label": "Docker Compose",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_docker_compose",
+      "community": 2,
+      "norm_label": "docker compose"
+    },
+    {
+      "label": "REST",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_rest",
+      "community": 2,
+      "norm_label": "rest"
+    },
+    {
+      "label": "WebHook",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_webhook",
+      "community": 2,
+      "norm_label": "webhook"
+    },
+    {
+      "label": "Executor",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_executor",
+      "community": 2,
+      "norm_label": "executor"
+    },
+    {
+      "label": "Task",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_task",
+      "community": 2,
+      "norm_label": "task"
+    },
+    {
+      "label": "Flow",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_flow",
+      "community": 2,
+      "norm_label": "flow"
+    },
+    {
+      "label": "Subflow",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_subflow",
+      "community": 2,
+      "norm_label": "subflow"
+    },
+    {
+      "label": "Namespace",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_namespace",
+      "community": 12,
+      "norm_label": "namespace"
+    },
+    {
+      "label": "Parallel",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_parallel",
+      "community": 2,
+      "norm_label": "parallel"
+    },
+    {
+      "label": "Sequential",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_sequential",
+      "community": 2,
+      "norm_label": "sequential"
+    },
+    {
+      "label": "Data Storage",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_data_storage",
+      "community": 2,
+      "norm_label": "data storage"
+    },
+    {
+      "label": "JSON",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_json",
+      "community": 2,
+      "norm_label": "json"
+    },
+    {
+      "label": "YAML",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_yaml",
+      "community": 2,
+      "norm_label": "yaml"
+    },
+    {
+      "label": "Python",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_python",
+      "community": 2,
+      "norm_label": "python"
+    },
+    {
+      "label": "TypeScript",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_typescript",
+      "community": 2,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "Gmail",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_gmail",
+      "community": 2,
+      "norm_label": "gmail"
+    },
+    {
+      "label": "Social Media",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_social_media",
+      "community": 2,
+      "norm_label": "social media"
+    },
+    {
+      "label": "LinkedIn",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_linkedin",
+      "community": 2,
+      "norm_label": "linkedin"
+    },
+    {
+      "label": "Twitter",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_twitter",
+      "community": 2,
+      "norm_label": "twitter"
+    },
+    {
+      "label": "WhatsApp",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_whatsapp",
+      "community": 13,
+      "norm_label": "whatsapp"
+    },
+    {
+      "label": "Instagram",
+      "file_type": "rationale",
+      "source_file": "chunk_0",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_instagram",
+      "community": 14,
+      "norm_label": "instagram"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_send_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_request_logger",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_githubreposrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_githubitemsrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_styleanalysisrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L158",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_validate_sample_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_socialstyleimportrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_reporef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_owner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_commitref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L201",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_prref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_generaterequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_kestratriggerrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L237",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_utc_now",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L245",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_ensure_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L250",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_load_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L259",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_save_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L264",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L268",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_parse_github_repo_ref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L285",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_github_headers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L299",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_mask_sensitive",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L314",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_effective_github_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L318",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_mock_repositories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L355",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_mock_commits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L378",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_mock_pull_requests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L399",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_github_api_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L415",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_repo_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L439",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_unique_repositories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L451",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_commit_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L464",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_pr_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L475",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_collect_keywords",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L481",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_pick_raw_update",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L495",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_derive_context_bundle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L541",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_build_post_variants",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L580",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_ai_generation_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L601",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_extract_json_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L625",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_generated_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L634",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_generate_with_groq",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L666",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_generate_with_gemini",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L707",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_generate_posts_with_ai",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L751",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_route_content",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L790",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_compute_delivery_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L813",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L820",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_read_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L824",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_kestra_execution_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L828",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_kestra_flow_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L832",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_compact_value",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L844",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_flatten_flow_tasks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L867",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_summarize_kestra_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L900",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_merge_final_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L926",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_extract_final_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L937",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_update_timeline_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L947",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_sync_run_with_kestra",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L984",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_summarize_logs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L988",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_build_preview_package",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1044",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_normalize_sample_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1051",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_analyze_style_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1102",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_trigger_kestra_flow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1176",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_upsert_run_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1186",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_health_check",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1197",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_config_defaults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1219",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_get_kestra_flow_definition",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1247",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_get_kestra_execution_details",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1274",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_fetch_repositories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1327",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_fetch_commits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1348",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_fetch_pull_requests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1369",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_analyze_linkedin_style",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1392",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_import_algsoch_style",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1440",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_generate_content",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1453",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_trigger_kestra",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1475",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_list_runs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1489",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_get_run",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1497",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_list_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1509",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_send_post_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1597",
+      "weight": 1.0,
+      "source": "backend_main_py",
+      "target": "backend_main_github_webhook",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1579",
+      "weight": 1.0,
+      "source": "backend_main_send_post_email",
+      "target": "backend_main_send_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1651",
+      "weight": 1.0,
+      "source": "backend_main_github_webhook",
+      "target": "backend_main_send_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "backend_main_rationale_63",
+      "target": "backend_main_send_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L132",
+      "weight": 1.0,
+      "source": "backend_main_githubreposrequest",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "backend_main_githubitemsrequest",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "backend_main_styleanalysisrequest",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "backend_main_socialstyleimportrequest",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "backend_main_reporef",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "backend_main_commitref",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L201",
+      "weight": 1.0,
+      "source": "backend_main_prref",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "backend_main_generaterequest",
+      "target": "basemodel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "backend_main_kestratriggerrequest",
+      "target": "backend_main_generaterequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1615",
+      "weight": 1.0,
+      "source": "backend_main_github_webhook",
+      "target": "backend_main_generaterequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L242",
+      "weight": 1.0,
+      "source": "backend_main_utc_now_iso",
+      "target": "backend_main_utc_now",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L331",
+      "weight": 1.0,
+      "source": "backend_main_mock_repositories",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L361",
+      "weight": 1.0,
+      "source": "backend_main_mock_commits",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L393",
+      "weight": 1.0,
+      "source": "backend_main_mock_pull_requests",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L979",
+      "weight": 1.0,
+      "source": "backend_main_sync_run_with_kestra",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L996",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1152",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra_flow",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1180",
+      "weight": 1.0,
+      "source": "backend_main_upsert_run_preview",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1190",
+      "weight": 1.0,
+      "source": "backend_main_health_check",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1375",
+      "weight": 1.0,
+      "source": "backend_main_analyze_linkedin_style",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1423",
+      "weight": 1.0,
+      "source": "backend_main_import_algsoch_style",
+      "target": "backend_main_utc_now_iso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L814",
+      "weight": 1.0,
+      "source": "backend_main_write_run_snapshot",
+      "target": "backend_main_ensure_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1187",
+      "weight": 1.0,
+      "source": "backend_main_health_check",
+      "target": "backend_main_ensure_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1476",
+      "weight": 1.0,
+      "source": "backend_main_list_runs",
+      "target": "backend_main_ensure_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1498",
+      "weight": 1.0,
+      "source": "backend_main_list_posts",
+      "target": "backend_main_ensure_storage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L821",
+      "weight": 1.0,
+      "source": "backend_main_read_run_snapshot",
+      "target": "backend_main_load_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1479",
+      "weight": 1.0,
+      "source": "backend_main_list_runs",
+      "target": "backend_main_load_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1501",
+      "weight": 1.0,
+      "source": "backend_main_list_posts",
+      "target": "backend_main_load_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L816",
+      "weight": 1.0,
+      "source": "backend_main_write_run_snapshot",
+      "target": "backend_main_save_json_file",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1372",
+      "weight": 1.0,
+      "source": "backend_main_analyze_linkedin_style",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1420",
+      "weight": 1.0,
+      "source": "backend_main_import_algsoch_style",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1441",
+      "weight": 1.0,
+      "source": "backend_main_generate_content",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1454",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1601",
+      "weight": 1.0,
+      "source": "backend_main_github_webhook",
+      "target": "backend_main_make_run_id",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1275",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_parse_github_repo_ref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L400",
+      "weight": 1.0,
+      "source": "backend_main_github_api_json",
+      "target": "backend_main_github_headers",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L893",
+      "weight": 1.0,
+      "source": "backend_main_summarize_kestra_execution",
+      "target": "backend_main_mask_sensitive",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1105",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra_flow",
+      "target": "backend_main_mask_sensitive",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1104",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra_flow",
+      "target": "backend_main_effective_github_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1289",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_effective_github_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1333",
+      "weight": 1.0,
+      "source": "backend_main_fetch_commits",
+      "target": "backend_main_effective_github_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1354",
+      "weight": 1.0,
+      "source": "backend_main_fetch_pull_requests",
+      "target": "backend_main_effective_github_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1279",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_mock_repositories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1329",
+      "weight": 1.0,
+      "source": "backend_main_fetch_commits",
+      "target": "backend_main_mock_commits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1350",
+      "weight": 1.0,
+      "source": "backend_main_fetch_pull_requests",
+      "target": "backend_main_mock_pull_requests",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1290",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_github_api_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1334",
+      "weight": 1.0,
+      "source": "backend_main_fetch_commits",
+      "target": "backend_main_github_api_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1355",
+      "weight": 1.0,
+      "source": "backend_main_fetch_pull_requests",
+      "target": "backend_main_github_api_json",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1298",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_normalize_repo_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1311",
+      "weight": 1.0,
+      "source": "backend_main_fetch_repositories",
+      "target": "backend_main_unique_repositories",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1330",
+      "weight": 1.0,
+      "source": "backend_main_fetch_commits",
+      "target": "backend_main_normalize_commit_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1351",
+      "weight": 1.0,
+      "source": "backend_main_fetch_pull_requests",
+      "target": "backend_main_normalize_pr_item",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L501",
+      "weight": 1.0,
+      "source": "backend_main_derive_context_bundle",
+      "target": "backend_main_collect_keywords",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L496",
+      "weight": 1.0,
+      "source": "backend_main_derive_context_bundle",
+      "target": "backend_main_pick_raw_update",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L989",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_derive_context_bundle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L708",
+      "weight": 1.0,
+      "source": "backend_main_generate_posts_with_ai",
+      "target": "backend_main_build_post_variants",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L647",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_groq",
+      "target": "backend_main_ai_generation_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L679",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_gemini",
+      "target": "backend_main_ai_generation_prompt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L660",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_groq",
+      "target": "backend_main_extract_json_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L701",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_gemini",
+      "target": "backend_main_extract_json_object",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L663",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_groq",
+      "target": "backend_main_normalize_generated_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L704",
+      "weight": 1.0,
+      "source": "backend_main_generate_with_gemini",
+      "target": "backend_main_normalize_generated_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L721",
+      "weight": 1.0,
+      "source": "backend_main_generate_posts_with_ai",
+      "target": "backend_main_generate_with_groq",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L728",
+      "weight": 1.0,
+      "source": "backend_main_generate_posts_with_ai",
+      "target": "backend_main_generate_with_gemini",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L991",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_generate_posts_with_ai",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L992",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_route_content",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L993",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_compute_delivery_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L980",
+      "weight": 1.0,
+      "source": "backend_main_sync_run_with_kestra",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1158",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra_flow",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1181",
+      "weight": 1.0,
+      "source": "backend_main_upsert_run_preview",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1382",
+      "weight": 1.0,
+      "source": "backend_main_analyze_linkedin_style",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1430",
+      "weight": 1.0,
+      "source": "backend_main_import_algsoch_style",
+      "target": "backend_main_write_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1146",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra_flow",
+      "target": "backend_main_read_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1177",
+      "weight": 1.0,
+      "source": "backend_main_upsert_run_preview",
+      "target": "backend_main_read_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1455",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra",
+      "target": "backend_main_read_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1490",
+      "weight": 1.0,
+      "source": "backend_main_get_run",
+      "target": "backend_main_read_run_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L896",
+      "weight": 1.0,
+      "source": "backend_main_summarize_kestra_execution",
+      "target": "backend_main_kestra_execution_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1208",
+      "weight": 1.0,
+      "source": "backend_main_config_defaults",
+      "target": "backend_main_kestra_flow_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1237",
+      "weight": 1.0,
+      "source": "backend_main_get_kestra_flow_definition",
+      "target": "backend_main_kestra_flow_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L880",
+      "weight": 1.0,
+      "source": "backend_main_summarize_kestra_execution",
+      "target": "backend_main_compact_value",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1229",
+      "weight": 1.0,
+      "source": "backend_main_get_kestra_flow_definition",
+      "target": "backend_main_flatten_flow_tasks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L895",
+      "weight": 1.0,
+      "source": "backend_main_summarize_kestra_execution",
+      "target": "backend_main_extract_final_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1259",
+      "weight": 1.0,
+      "source": "backend_main_get_kestra_execution_details",
+      "target": "backend_main_summarize_kestra_execution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L965",
+      "weight": 1.0,
+      "source": "backend_main_sync_run_with_kestra",
+      "target": "backend_main_merge_final_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L963",
+      "weight": 1.0,
+      "source": "backend_main_sync_run_with_kestra",
+      "target": "backend_main_extract_final_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L969",
+      "weight": 1.0,
+      "source": "backend_main_sync_run_with_kestra",
+      "target": "backend_main_update_timeline_status",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1482",
+      "weight": 1.0,
+      "source": "backend_main_list_runs",
+      "target": "backend_main_sync_run_with_kestra",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1493",
+      "weight": 1.0,
+      "source": "backend_main_get_run",
+      "target": "backend_main_sync_run_with_kestra",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1034",
+      "weight": 1.0,
+      "source": "backend_main_build_preview_package",
+      "target": "backend_main_summarize_logs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1442",
+      "weight": 1.0,
+      "source": "backend_main_generate_content",
+      "target": "backend_main_build_preview_package",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1457",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra",
+      "target": "backend_main_build_preview_package",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1627",
+      "weight": 1.0,
+      "source": "backend_main_github_webhook",
+      "target": "backend_main_build_preview_package",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1370",
+      "weight": 1.0,
+      "source": "backend_main_analyze_linkedin_style",
+      "target": "backend_main_normalize_sample_posts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1371",
+      "weight": 1.0,
+      "source": "backend_main_analyze_linkedin_style",
+      "target": "backend_main_analyze_style_samples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1465",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra",
+      "target": "backend_main_trigger_kestra_flow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1443",
+      "weight": 1.0,
+      "source": "backend_main_generate_content",
+      "target": "backend_main_upsert_run_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1458",
+      "weight": 1.0,
+      "source": "backend_main_trigger_kestra",
+      "target": "backend_main_upsert_run_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1628",
+      "weight": 1.0,
+      "source": "backend_main_github_webhook",
+      "target": "backend_main_upsert_run_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "backend/main.py",
+      "source_location": "L1515",
+      "weight": 1.0,
+      "source": "backend_main_rationale_1515",
+      "target": "backend_main_send_post_email",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_repoitem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_commititem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_pullrequestitem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_reporefpayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_commitrefpayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_pullrequestrefpayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_styleanalysis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L134",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_generatedposts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_deliverystatus",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_aigeneration",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_runtimeline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L158",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_runrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_postrecord",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L201",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_kestrataskdefinition",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L211",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_kestraflowdefinition",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L222",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_kestrataskrun",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L233",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_kestraexecutiondetails",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L252",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_backenddefaults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L266",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_orchestrationtab",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L268",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_actionphase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L270",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_actionstate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_notice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L284",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_workflowpayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L304",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_actiondefaults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L316",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_platformmeta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L323",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_formattime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L331",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_statustone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L338",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_noticetone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L344",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_errormessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L362",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_splitsamples",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L369",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_countwords",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L373",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_deliverymeaning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L382",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_executionstatustone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L389",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_parsekestraduration",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L399",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_formatdurationms",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L406",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_toreporef",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L418",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_tocommitref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L429",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_topullrequestref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L441",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2258",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_actioncard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2272",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_summarybadge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2281",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_statpill",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2290",
+      "weight": 1.0,
+      "source": "frontend_src_app_tsx",
+      "target": "src_app_detailrow",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/main.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "frontend_src_main_tsx",
+      "target": "frontend_src_app_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L1789",
+      "weight": 1.0,
+      "source": "src_app_app",
+      "target": "src_app_statustone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2260",
+      "weight": 1.0,
+      "source": "src_app_actioncard",
+      "target": "src_app_statustone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L2064",
+      "weight": 1.0,
+      "source": "src_app_app",
+      "target": "src_app_deliverymeaning",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/src/App.tsx",
+      "source_location": "L1138",
+      "weight": 1.0,
+      "source": "src_app_app",
+      "target": "src_app_executionstatustone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/analyze.py",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "scripts_analyze_py",
+      "target": "scripts_analyze_analyze",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/generate.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "scripts_generate_py",
+      "target": "scripts_generate_generate_post",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/route.py",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "scripts_route_py",
+      "target": "scripts_route_route",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/deliver.py",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "scripts_deliver_py",
+      "target": "scripts_deliver_deliver",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_backend",
+      "target": "concept_kestra"
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_kestra",
+      "target": "concept_executor"
+    },
+    {
+      "relation": "executes",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_kestra",
+      "target": "concept_flow"
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_autopr",
+      "target": "concept_kestra"
+    },
+    {
+      "relation": "configures",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_yaml",
+      "target": "concept_kestra"
+    },
+    {
+      "relation": "has",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_autopr",
+      "target": "concept_frontend"
+    },
+    {
+      "relation": "has",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_autopr",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_frontend",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_frontend",
+      "target": "concept_react"
+    },
+    {
+      "relation": "uses",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_frontend",
+      "target": "concept_vite"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_frontend",
+      "target": "concept_typescript"
+    },
+    {
+      "relation": "containerizes",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_docker",
+      "target": "concept_frontend"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_backend",
+      "target": "concept_fastapi"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_backend",
+      "target": "concept_python"
+    },
+    {
+      "relation": "manages",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_backend",
+      "target": "concept_data_storage"
+    },
+    {
+      "relation": "notifies",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_webhook",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "containerizes",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_docker",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "integrates",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_gmail",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "targets",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_social_media",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_rest",
+      "target": "concept_backend"
+    },
+    {
+      "relation": "receives",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_webhook",
+      "target": "concept_github"
+    },
+    {
+      "relation": "orchestrates",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_docker_compose",
+      "target": "concept_docker"
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_task",
+      "target": "concept_executor"
+    },
+    {
+      "relation": "pattern",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_parallel",
+      "target": "concept_executor"
+    },
+    {
+      "relation": "pattern",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_sequential",
+      "target": "concept_executor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_flow",
+      "target": "concept_subflow"
+    },
+    {
+      "relation": "formats",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_json",
+      "target": "concept_data_storage"
+    },
+    {
+      "relation": "includes",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_linkedin",
+      "target": "concept_social_media"
+    },
+    {
+      "relation": "includes",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "chunk_1",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "concept_twitter",
+      "target": "concept_social_media"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "core_autopr_architecture_0",
+      "label": "Core AutoPR Architecture",
+      "nodes": [
+        "concept_frontend",
+        "concept_backend",
+        "concept_kestra"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_0"
+    },
+    {
+      "id": "webhook_dataflow_0",
+      "label": "GitHub to Kestra Execution Flow",
+      "nodes": [
+        "concept_concept_github",
+        "concept_concept_webhook",
+        "concept_concept_backend",
+        "concept_concept_kestra"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_0"
+    },
+    {
+      "id": "core_autopr_architecture_1",
+      "label": "Core AutoPR Architecture",
+      "nodes": [
+        "concept_frontend",
+        "concept_backend",
+        "concept_kestra"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chunk_1"
+    },
+    {
+      "id": "webhook_dataflow_1",
+      "label": "GitHub to Kestra Execution Flow",
+      "nodes": [
+        "concept_concept_github",
+        "concept_concept_webhook",
+        "concept_concept_backend",
+        "concept_concept_kestra"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "chunk_1"
+    }
+  ],
+  "built_at_commit": "a4d50ab427ff08fb6026ac3de24d8142ec2ce23c"
+}

@@ -1,0 +1,124 @@
+id: send_notifications
+namespace: system.autopr
+description: Send email notifications for generated posts using Kestra Mail Plugin
+
+inputs:
+  - id: content
+    type: STRING
+    defaults: "No content provided."
+  - id: project
+    type: STRING
+    defaults: "AutoPR App"
+  - id: recipient_email
+    type: STRING
+    defaults: "npdimagine@gmail.com"
+  - id: ai_provider
+    type: STRING
+    defaults: "auto"
+  - id: execution_id
+    type: STRING
+    defaults: "manual-trigger"
+  - id: platform
+    type: STRING
+    defaults: "linkedin"
+
+tasks:
+  - id: send_email_notification
+    type: io.kestra.plugin.core.mail.Send
+    from: "{{ secret('GMAIL_ADDRESS') }}"
+    to: "{{ inputs.recipient_email }}"
+    subject: "AutoPR Event: {{ inputs.platform | upper }} Post Ready"
+    htmlTextContent: |
+      <html>
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; background: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: #f4f4f5; padding: 40px 0;">
+                  <tr>
+                      <td align="center">
+                          <table width="100%" max-width="600px" cellpadding="0" cellspacing="0" style="background: white; border-radius: 8px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                              <!-- Header -->
+                              <tr>
+                                  <td style="background: #18181b; padding: 32px 30px; text-align: left; color: white;">
+                                      <h1 style="margin: 0 0 4px 0; font-size: 24px; font-weight: 600; letter-spacing: -0.025em; color: #f4f4f5;">AutoPR Engine</h1>
+                                      <p style="margin: 0; font-size: 14px; color: #a1a1aa; font-weight: 400;">Content Generation Report</p>
+                                  </td>
+                              </tr>
+                              
+                              <!-- Content -->
+                              <tr>
+                                  <td style="padding: 40px 30px; color: #27272a;">
+                                      <h2 style="margin: 0 0 20px 0; font-size: 18px; font-weight: 600; color: #18181b;">{{ inputs.platform | upper }} Post Ready</h2>
+                                      
+                                      <!-- Generated Post Box -->
+                                      <div style="background: #fafafa; border: 1px solid #e4e4e7; border-left: 4px solid #4f46e5; padding: 20px; margin: 20px 0; border-radius: 6px; font-size: 14px; line-height: 1.6; color: #3f3f46; white-space: pre-wrap; word-wrap: break-word;">
+{{ inputs.content }}
+                                      </div>
+                                      
+                                      <!-- Metadata -->
+                                      <table width="100%" cellpadding="0" cellspacing="0" style="background: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; padding: 16px; margin: 24px 0;">
+                                          <tr>
+                                              <td style="padding: 4px 0; font-size: 13px; color: #52525b; border-bottom: 1px solid #e4e4e7;">
+                                                  <strong style="color: #18181b; font-weight: 600; width: 100px; display: inline-block;">Model:</strong> {{ inputs.ai_provider }}
+                                              </td>
+                                          </tr>
+                                          <tr>
+                                              <td style="padding: 4px 0; font-size: 13px; color: #52525b; border-bottom: 1px solid #e4e4e7;">
+                                                  <strong style="color: #18181b; font-weight: 600; width: 100px; display: inline-block;">Project:</strong> {{ inputs.project }}
+                                              </td>
+                                          </tr>
+                                          <tr>
+                                              <td style="padding: 4px 0; font-size: 13px; color: #52525b;">
+                                                  <strong style="color: #18181b; font-weight: 600; width: 100px; display: inline-block;">Execution:</strong> <span style="font-family: monospace; font-size: 12px;">{{ inputs.execution_id }}</span>
+                                              </td>
+                                          </tr>
+                                      </table>
+                                      
+                                      <!-- CTA Buttons -->
+                                      <table width="100%" cellpadding="0" cellspacing="0" style="margin: 32px 0;">
+                                          <tr>
+                                              <td align="left">
+                                                  <table cellpadding="0" cellspacing="0">
+                                                      <tr>
+                                                          <td style="background: #18181b; border-radius: 6px; padding: 10px 20px;">
+                                                              <a href="http://localhost:3000" style="color: white; text-decoration: none; font-weight: 500; font-size: 14px; display: inline-block;">Open Dashboard</a>
+                                                          </td>
+                                                          <td style="width: 12px;"></td>
+                                                          <td style="background: white; border: 1px solid #d4d4d8; border-radius: 6px; padding: 10px 20px;">
+                                                              <a href="http://localhost:8080/ui/executions/{{ inputs.execution_id }}" style="color: #27272a; text-decoration: none; font-weight: 500; font-size: 14px; display: inline-block;">View Execution</a>
+                                                          </td>
+                                                      </tr>
+                                                  </table>
+                                              </td>
+                                          </tr>
+                                      </table>
+                                  </td>
+                              </tr>
+                              
+                              <!-- Footer -->
+                              <tr>
+                                  <td style="background: #fafafa; padding: 24px 30px; text-align: left; border-top: 1px solid #e4e4e7;">
+                                      <p style="margin: 0; font-size: 12px; color: #71717a;">
+                                          AutoPR Engine | Automated Content Pipeline<br>
+                                          Generated securely via Kestra.
+                                      </p>
+                                  </td>
+                              </tr>
+                          </table>
+                      </td>
+                  </tr>
+              </table>
+          </body>
+      </html>
+    smtp:
+      host: "{{ secret('GMAIL_SMTP_HOST') }}"
+      port: "{{ secret('GMAIL_SMTP_PORT') }}"
+      username: "{{ secret('GMAIL_ADDRESS') }}"
+      password: "{{ secret('GMAIL_PASSWORD') }}"
+      from: "{{ secret('GMAIL_ADDRESS') }}"
+
+  - id: completion
+    type: io.kestra.plugin.core.log.Log
+    message: "✅ Email notification sent to {{ inputs.recipient_email }} for {{ inputs.project }}"

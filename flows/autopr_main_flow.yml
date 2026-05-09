@@ -5,14 +5,19 @@ description: "Main orchestration flow for AutoPR Engine"
 inputs:
   - id: run_id
     type: STRING
+    defaults: "manual_{{ now() | dateFormat('yyyyMMddHHmmss') }}"
   - id: source
     type: STRING
+    defaults: "manual"
   - id: project
     type: STRING
+    defaults: "test/project"
   - id: raw_update
     type: STRING
+    defaults: "Manual trigger execution"
   - id: author
     type: STRING
+    defaults: "User"
   - id: goal
     type: STRING
     defaults: "general_update"

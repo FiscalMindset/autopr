@@ -652,14 +652,20 @@ function App() {
 
   const sendPostEmail = async (platform: string, content: string) => {
     try {
-      await axios.post(`${API_URL}/send-post-email`, null, {
-        params: {
-          platform,
-          content,
-          llm_provider: currentAiGeneration?.provider || backendDefaults?.ai_provider || 'auto',
-        },
+      // Call Kestra directly instead of using the backend wrapper!
+      const formData = new FormData();
+      formData.append("generated_posts_json", JSON.stringify({ [platform]: content }));
+      formData.append("platform", platform);
+      formData.append("project", project || "Frontend Direct");
+      formData.append("ai_provider", currentAiGeneration?.provider || backendDefaults?.ai_provider || 'auto');
+      formData.append("execution_id", currentRunId || 'manual');
+      formData.append("recipient_email", backendDefaults?.github_username || 'npdimagine@gmail.com');
+
+      await axios.post(`http://localhost:8080/api/v1/executions/system.autopr/send_notifications`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      pushNotice('success', 'Email Sent', `${platform.toUpperCase()} post emailed successfully!`);
+      
+      pushNotice('success', 'Email Sent via Kestra', `${platform.toUpperCase()} post emailed successfully!`);
     } catch (error) {
       pushNotice('error', 'Email Failed', errorMessage(error));
     }
@@ -1216,7 +1222,6 @@ function App() {
               <div className="text-sm font-medium text-white">
                 {currentExecutionId ? 'Live Kestra Execution Topology' : 'Kestra Flow Topology'}
               </div>
-              <div className="mt-1 break-all font-mono text-xs text-cyan-200">{currentTopologyUrl}</div>
             </div>
             <a
               href={currentTopologyUrl}

@@ -1,0 +1,91 @@
+id: webhook_receiver
+namespace: system.autopr
+description: Receives GitHub webhooks and automatically triggers the main AutoPR flow
+
+triggers:
+  - id: github_webhook_trigger
+    type: io.kestra.plugin.core.trigger.Http
+    inputs:
+      - name: payload
+        type: JSON
+        description: GitHub webhook payload
+    outputs:
+      - name: webhook_data
+        type: JSON
+
+tasks:
+  - id: log_webhook_received
+    type: io.kestra.plugin.core.log.Log
+    message: "📩 GitHub webhook received from {{ trigger.webhook_data.repository.full_name }}"
+
+  - id: extract_commit_details
+    type: io.kestra.plugin.core.runner.Process
+    runner: PROCESS
+    commands:
+      - python3
+      - -c
+      - |
+        import json
+        import sys
+        
+        payload = json.loads('''{{ trigger.webhook_data | json }}''')
+        commits = payload.get('commits', [])
+        repository = payload.get('repository', {})
+        
+        if commits:
+          # Combine all commit messages
+          raw_update = '\n'.join(c.get('message', '') for c in commits if c.get('message'))
+          author = (commits[0].get('author') or {}).get('name') or 'GitHub Webhook'
+        else:
+          raw_update = repository.get('description') or 'Repository update received'
+          author = 'GitHub Webhook'
+        
+        output = {
+          'project': repository.get('full_name', 'unknown'),
+          'raw_update': raw_update,
+          'author': author,
+          'repo_url': repository.get('html_url', ''),
+          'commits_count': len(commits)
+        }
+        print(json.dumps(output))
+
+  - id: trigger_main_flow
+    type: io.kestra.plugin.core.flow.Trigger
+    flowId: autopr_main_flow
+    inputs:
+      run_id: "webhook_{{ now() | dateFormat('yyyyMMdd_HHmmss') }}"
+      source: "github_webhook"
+      project: "{{ trigger.webhook_data.repository.full_name }}"
+      raw_update: "{{ trigger.webhook_data.commits[0].message | default(trigger.webhook_data.repository.description) }}"
+      author: "{{ trigger.webhook_data.commits[0].author.name | default('GitHub Webhook') }}"
+      input_source: "github_webhook"
+      dry_run: "false"
+
+  - id: completion
+    type: io.kestra.plugin.core.log.Log
+    message: "✅ AutoPR main flow triggered for {{ trigger.webhook_data.repository.full_name }}"
+
+  - id: trigger_main_flow
+    type: io.kestra.plugin.core.http.Request
+    description: Trigger the main AutoPR generation flow via Kestra API
+    method: POST
+    url: "{{ env.KESTRA_API_URL }}/executions"
+    headers:
+      Content-Type: application/json
+    requestBody: |
+      {
+        "namespace": "system.autopr",
+        "flowId": "autopr_main_flow",
+        "inputs": {
+          "source": "github_webhook",
+          "project": "{{ outputs.extract_commit_details.body | json }}",
+          "raw_update": "GitHub webhook detected",
+          "author": "Webhook Automation",
+          "goal": "build_in_public",
+          "dry_run": false
+        }
+      }
+
+  - id: return_webhook_response
+    type: io.kestra.plugin.core.log.Log
+    message: "✅ Webhook processed. Execution started: {{ outputs.trigger_main_flow.body }}"
